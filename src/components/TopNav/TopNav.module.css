@@ -1,8 +1,8 @@
 .nav {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
+  gap: 12px;
+  padding: 14px 24px;
   background: #f5f0ed;
   width: 100%;
   position: relative;
@@ -11,17 +11,17 @@
 
 .tabs {
   display: flex;
-  gap: 4px;
+  gap: 6px;
 }
 
 .tab {
-  padding: 8px 20px;
+  padding: 12px 28px;
   border: 2px solid #dbc2b9;
-  border-radius: 8px;
+  border-radius: 10px;
   background: white;
   font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
   color: #6b5147;
   transition: all 0.15s;
@@ -47,13 +47,13 @@
 }
 
 .githubLink {
-  padding: 8px 16px;
+  padding: 12px 20px;
   font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
   font-weight: 700;
-  font-size: 14px;
+  font-size: 16px;
   color: #6b5147;
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.15s;
 }
 

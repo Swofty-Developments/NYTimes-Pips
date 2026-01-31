@@ -31,9 +31,17 @@ export function useContentScale() {
 
   useEffect(() => {
     recalc();
+    // Observe both container and inner for size changes
     const observer = new ResizeObserver(recalc);
     if (containerRef.current) observer.observe(containerRef.current);
-    return () => observer.disconnect();
+    if (innerRef.current) observer.observe(innerRef.current);
+
+    // Recalc after a frame to catch async content
+    const raf = requestAnimationFrame(recalc);
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(raf);
+    };
   }, [recalc]);
 
   return { containerRef, innerRef, scale };

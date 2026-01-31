@@ -194,7 +194,7 @@ function EditPageInner() {
   const getShareUrl = useCallback(() => {
     const encoded = encodePuzzle(board, placedDominoes);
     const url = new URL(window.location.href);
-    url.pathname = '/edit';
+    url.pathname = '/play';
     url.searchParams.set('puzzle', encoded);
     return url.toString();
   }, [board, placedDominoes]);

@@ -17,17 +17,10 @@
   overflow: hidden;
 }
 
-.grid {
+.boardGrid {
   display: grid;
-  width: 100%;
-  height: 100%;
-  gap: 4px;
-  padding: 4px;
-}
-
-.grid > * {
-  width: 100% !important;
-  height: 100% !important;
+  gap: 12px;
+  padding: 8px;
 }
 
 .fadeOverlay {
@@ -63,9 +56,9 @@
 .blurBackdrop {
   position: absolute;
   inset: -24px -32px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.65);
   border-radius: 32px;
 }
 

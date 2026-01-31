@@ -1,46 +1,46 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import TopNav from '@/components/TopNav/TopNav';
-import BoardCell from '@/components/BoardCell/BoardCell';
-import { EmptyCell } from '@/components/EmptyCell';
+import { Board } from '@/components/Board';
 import { BOARD } from '@/constants';
-import { RegionColor } from '@/types';
+import { generateRandomPuzzle } from '@/utils/puzzleGenerator';
 import styles from './page.module.css';
 
-const DECO_COLS = 30;
-const DECO_ROWS = 14;
-const REGION_COLORS: RegionColor[] = ['orange', 'blue', 'pink', 'teal', 'purple', 'green'];
+/** Calculate how many boards we need to tile the viewport */
+function getBoardCounts() {
+  const cellSize = parseFloat(BOARD.cellSize);
+  const gap = parseFloat(BOARD.gap);
+  const boardW = BOARD.cols * cellSize + (BOARD.cols - 1) * gap + 8;
+  const boardH = BOARD.rows * cellSize + (BOARD.rows - 1) * gap + 8;
 
-/** Simple seeded PRNG to avoid layout shift between renders */
-function seededRandom(seed: number) {
-  let s = seed;
-  return () => {
-    s = (s * 16807 + 0) % 2147483647;
-    return s / 2147483647;
-  };
+  // Use large defaults for SSR, will recalc on client
+  const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;
+  const vh = typeof window !== 'undefined' ? window.innerHeight : 1080;
+
+  const cols = Math.ceil(vw / boardW) + 1;
+  const rows = Math.ceil(vh / boardH) + 1;
+  return { cols, rows, total: cols * rows };
 }
 
-function generateDecorativeBoard(): (RegionColor | null)[][] {
-  const rand = seededRandom(42);
-  const grid: (RegionColor | null)[][] = [];
-  for (let r = 0; r < DECO_ROWS; r++) {
-    const row: (RegionColor | null)[] = [];
-    for (let c = 0; c < DECO_COLS; c++) {
-      if (rand() < 0.6) {
-        row.push(REGION_COLORS[Math.floor(rand() * REGION_COLORS.length)]);
-      } else {
-        row.push(null);
-      }
-    }
-    grid.push(row);
-  }
-  return grid;
-}
+const noop = () => {};
+const noopConstraint = () => {};
 
 export default function Home() {
-  const decoBoard = useMemo(() => generateDecorativeBoard(), []);
+  const [counts, setCounts] = useState(() => getBoardCounts());
+
+  useEffect(() => {
+    const update = () => setCounts(getBoardCounts());
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  const boards = useMemo(
+    () => Array.from({ length: counts.total }, () => generateRandomPuzzle(true)),
+    [counts.total]
+  );
 
   return (
     <div className={styles.page}>
@@ -48,24 +48,20 @@ export default function Home() {
 
       <div className={styles.backgroundBoard}>
         <div
-          className={styles.grid}
+          className={styles.boardGrid}
           style={{
-            gridTemplateColumns: `repeat(${DECO_COLS}, 1fr)`,
-            gridTemplateRows: `repeat(${DECO_ROWS}, 1fr)`,
+            gridTemplateColumns: `repeat(${counts.cols}, auto)`,
           }}
         >
-          {decoBoard.map((row, r) =>
-            row.map((color, c) =>
-              color ? (
-                <BoardCell
-                  key={`${r}-${c}`}
-                  regionColor={color}
-                />
-              ) : (
-                <EmptyCell key={`${r}-${c}`} />
-              )
-            )
-          )}
+          {boards.map((board, i) => (
+            <Board
+              key={i}
+              board={board}
+              isEditing={false}
+              onCellClick={noop}
+              onConstraintClick={noopConstraint}
+            />
+          ))}
         </div>
         <div className={styles.fadeOverlay} />
       </div>
