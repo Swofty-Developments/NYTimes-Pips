@@ -266,12 +266,8 @@ function EditPageInner() {
           const centerY = top + offsetY;
 
           const rotSteps = getRotationSteps(lp.domino.id);
-          const rotMod = ((rotSteps % 4) + 4) % 4;
-          const originalDomino = deckDominoes.find((d) => d.id === lp.domino.id) ?? lp.domino;
-          const needsSwap = rotMod >= 2;
-          const displayDomino = needsSwap
-            ? { ...originalDomino, first: originalDomino.second, second: originalDomino.first }
-            : originalDomino;
+          // Use original deck domino — CSS rotation handles visual orientation (same as deck)
+          const displayDomino = deckDominoes.find((d) => d.id === lp.domino.id) ?? lp.domino;
 
           return (
             <div
@@ -340,10 +336,10 @@ function EditPageInner() {
         const sign = isFirst ? 1 : -1;
         let tx = '-50%', ty = '-50%';
         switch (steps) {
-          case 0: tx = `calc(-50% + ${sign * 25}%)`; break;
-          case 1: ty = `calc(-50% + ${sign * 25}%)`; break;
-          case 2: tx = `calc(-50% + ${-sign * 25}%)`; break;
-          case 3: ty = `calc(-50% + ${-sign * 25}%)`; break;
+          case 0: tx = `calc(-50% + ${sign * 37.5}%)`; break;
+          case 1: ty = `calc(-50% + ${sign * 37.5}%)`; break;
+          case 2: tx = `calc(-50% + ${-sign * 37.5}%)`; break;
+          case 3: ty = `calc(-50% + ${-sign * 37.5}%)`; break;
         }
         return (
           <div
@@ -351,7 +347,7 @@ function EditPageInner() {
               position: 'fixed',
               left: dragState.currentPos.x,
               top: dragState.currentPos.y,
-              transform: `translate(${tx}, ${ty}) scale(${scale * 1.1})`,
+              transform: `translate(${tx}, ${ty}) scale(${scale})`,
               pointerEvents: 'none',
               zIndex: 100,
               opacity: 0.85,

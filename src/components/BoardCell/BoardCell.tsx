@@ -75,6 +75,7 @@ export default function BoardCell({
           style={{
             backgroundColor: theme.fill,
             clipPath: DIAMOND_CLIP_PATH,
+            pointerEvents: isEditing ? 'auto' : 'none',
           }}
           onClick={onConstraintClick}
         >

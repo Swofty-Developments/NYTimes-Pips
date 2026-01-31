@@ -29,6 +29,7 @@
 .regionCell {
   position: absolute;
   z-index: 2;
+  pointer-events: none;
 }
 
 /* Background layer: region color with border-radius that clips

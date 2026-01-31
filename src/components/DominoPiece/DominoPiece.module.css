@@ -21,7 +21,7 @@
 
 /* ── Selected State ────────────────────────────────────────── */
 .selected {
-  transform: rotate(var(--rotation-deg, 0deg)) scale(1.12);
+  transform: rotate(var(--rotation-deg, 0deg)) scale(1.5);
   z-index: 10;
 }
 

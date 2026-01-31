@@ -155,6 +155,8 @@ export function useDominoInteraction({
       ]);
       setLifted(null);
       selection.clearSelection();
+      // Clear stale drag-occurred flag after the browser's click event has had a chance to fire
+      setTimeout(() => selection.consumeDragOccurred(), 0);
     },
     [findDomino, onPlacedDominoesChange, selection]
   );
@@ -177,11 +179,14 @@ export function useDominoInteraction({
           onPlacedDominoesChange((prev) => [...prev, lifted]);
           setLifted(null);
           selection.clearSelection();
+          setTimeout(() => selection.consumeDragOccurred(), 0);
           return;
         }
       }
       // Deck source — just clear selection, domino stays in deck
       selection.clearSelection();
+      // Clear stale drag-occurred flag after the browser's click event has had a chance to fire
+      setTimeout(() => selection.consumeDragOccurred(), 0);
     },
     [onPlacedDominoesChange, selection]
   );

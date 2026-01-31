@@ -14,6 +14,8 @@ export interface UseSelectionInteractionReturn {
   handleDominoClick: (dominoId: string, location: DominoLocation, initialRotation?: number) => void;
   clearSelection: () => SelectionState | null;
   setDragOccurred: () => void;
+  /** Check and consume the drag-occurred flag. Returns true if a drag just ended. */
+  consumeDragOccurred: () => boolean;
   getEffectiveOrientation: (dominoId: string, fallback?: DominoOrientation) => DominoOrientation;
   getRotationSteps: (dominoId: string) => number;
 }
@@ -24,6 +26,14 @@ export function useSelectionInteraction(): UseSelectionInteractionReturn {
 
   const setDragOccurred = useCallback(() => {
     dragOccurredRef.current = true;
+  }, []);
+
+  const consumeDragOccurred = useCallback((): boolean => {
+    if (dragOccurredRef.current) {
+      dragOccurredRef.current = false;
+      return true;
+    }
+    return false;
   }, []);
 
   const clearSelection = useCallback((): SelectionState | null => {
@@ -89,6 +99,7 @@ export function useSelectionInteraction(): UseSelectionInteractionReturn {
     handleDominoClick,
     clearSelection,
     setDragOccurred,
+    consumeDragOccurred,
     getEffectiveOrientation,
     getRotationSteps,
   };
