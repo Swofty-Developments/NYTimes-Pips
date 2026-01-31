@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+const MAX_PUZZLES = 50;
 const store = new Map<string, { board: unknown; placedDominoes: unknown }>();
 
 const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -26,6 +27,12 @@ export async function POST(request: NextRequest) {
   }
 
   store.set(code, { board, placedDominoes });
+
+  // Evict oldest entries when over the limit
+  while (store.size > MAX_PUZZLES) {
+    const oldest = store.keys().next().value!;
+    store.delete(oldest);
+  }
 
   return NextResponse.json({ code }, { status: 201 });
 }
