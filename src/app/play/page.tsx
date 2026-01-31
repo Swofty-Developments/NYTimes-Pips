@@ -113,10 +113,19 @@ function PlayPageInner() {
     [board, placedDominoes]
   );
 
+  // Track dismissed incorrect state — only re-show after a piece moves
+  const incorrectDismissedRef = useRef<PlacedDomino[] | null>(null);
+
   // Check win condition whenever placed dominoes change
   useEffect(() => {
     if (gamePhase !== 'playing' || placedDominoes.length === 0) return;
-    if (!isBoardFull(board, placedDominoes)) return;
+    if (!isBoardFull(board, placedDominoes)) {
+      // Board is no longer full — reset dismissal tracker
+      incorrectDismissedRef.current = null;
+      return;
+    }
+    // Skip if this is the same placement state that was already dismissed
+    if (incorrectDismissedRef.current === placedDominoes) return;
     if (violatedRegions.size === 0) {
       setElapsedSeconds(Math.floor((Date.now() - (startTime ?? Date.now())) / 1000));
       setGamePhase('solved');
@@ -174,8 +183,9 @@ function PlayPageInner() {
   }, []);
 
   const handleIncorrectClose = useCallback(() => {
+    incorrectDismissedRef.current = placedDominoes;
     setGamePhase('playing');
-  }, []);
+  }, [placedDominoes]);
 
   const handleClearBoard = useCallback(() => {
     setPlacedDominoes([]);
