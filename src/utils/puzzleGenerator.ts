@@ -30,161 +30,845 @@ function pick<T>(arr: T[]): T {
 const GRID_ROWS = WORK_GRID.rows;
 const GRID_COLS = WORK_GRID.cols;
 
-/** Hardcoded pixel-art templates for recognizable shapes. Each is a string[] where '#' = foundation.
- *  They get placed centered on the work grid. Must have even cell count. */
-const SHAPE_TEMPLATES: string[][] = [
-  // Heart
-  [
-    '.##.##.',
-    '#######',
-    '#######',
-    '.#####.',
-    '..###..',
-    '...#...',
-  ],
-  // Plus / cross
-  [
-    '..##..',
-    '..##..',
+// ── Template types ──────────────────────────────────────────────
+
+interface TemplateHint {
+  /** Which cells this hint targets (relative to template origin) */
+  cells: [number, number][];
+  /** The constraint to force on the region containing these cells */
+  constraint: Constraint;
+}
+
+interface ShapeTemplate {
+  shape: string[];
+  hints?: TemplateHint[];
+}
+
+/** Hardcoded pixel-art templates for recognizable shapes. '#' = foundation.
+ *  Placed centered on work grid. Must have even cell count per connected component. */
+const SHAPE_TEMPLATES: ShapeTemplate[] = [
+  // ── Animals ───────────────────────────────────────────────────
+  // Cat face
+  { shape: [
+    '#....#',
+    '##..##',
     '######',
-    '######',
-    '..##..',
-    '..##..',
-  ],
-  // Diamond
-  [
-    '..##..',
-    '.####.',
-    '######',
-    '######',
+    '##..##',
     '.####.',
     '..##..',
-  ],
-  // T shape
-  [
-    '######',
-    '######',
-    '..##..',
-    '..##..',
-    '..##..',
-    '..##..',
-  ],
-  // U shape
-  [
-    '##..##',
-    '##..##',
-    '##..##',
-    '######',
-    '######',
-  ],
-  // L shape
-  [
-    '##....',
-    '##....',
-    '##....',
-    '##....',
-    '######',
-    '######',
-  ],
-  // Arrow right
-  [
+  ]},
+  // Fish
+  { shape: [
     '..##....',
-    '..####..',
+    '.######.',
     '########',
-    '########',
-    '..####..',
+    '.######.',
     '..##....',
-  ],
-  // H shape
-  [
-    '##..##',
-    '##..##',
-    '######',
-    '######',
-    '##..##',
-    '##..##',
-  ],
-  // Zigzag / S
-  [
-    '..####',
-    '..####',
-    '.####.',
-    '.####.',
-    '####..',
-    '####..',
-  ],
-  // Frame / ring
-  [
-    '######',
-    '##..##',
-    '##..##',
-    '##..##',
-    '######',
-  ],
-  // Tetris T
-  [
+  ]},
+  // Bird
+  { shape: [
+    '..##....',
+    '.####...',
+    '######..',
+    '.######.',
+    '...####.',
+    '....##..',
+  ]},
+  // Bunny
+  { shape: [
+    '.##..##.',
+    '.##..##.',
+    '.######.',
     '########',
+    '.######.',
     '..####..',
+  ]},
+  // Turtle
+  { shape: [
     '..####..',
-  ],
-  // Two islands side by side
-  [
-    '###.###',
-    '###.###',
-    '###.###',
-    '###.###',
-  ],
-  // Two islands stacked
-  [
+    '.######.',
+    '########',
+    '########',
+    '##.##.##',
+  ]},
+  // Whale
+  { shape: [
+    '.####...',
+    '######..',
+    '########',
+    '.######.',
+    '..##..##',
+  ]},
+  // Butterfly
+  { shape: [
+    '##..##',
     '######',
+    '.####.',
     '######',
-    '......',
-    '######',
-    '######',
-  ],
-  // Staircase
-  [
+    '##..##',
+  ]},
+  // Snail
+  { shape: [
+    '..####..',
+    '.##..##.',
+    '.##..##.',
+    '..####..',
     '##......',
-    '####....',
+  ]},
+  // Frog
+  { shape: [
+    '##..##',
+    '######',
+    '.####.',
+    '######',
+    '##..##',
+    '.####.',
+  ]},
+  // Octopus
+  { shape: [
     '..####..',
+    '.######.',
+    '.######.',
+    '########',
+    '#.#..#.#',
+  ]},
+  // Bat
+  { shape: [
+    '..####..',
+    '.######.',
+    '########',
+    '##.##.##',
+    '#..##..#',
+  ]},
+
+  // ── Objects ───────────────────────────────────────────────────
+  // House
+  { shape: [
+    '...##...',
+    '..####..',
+    '.######.',
+    '########',
+    '##.##.##',
+    '##.##.##',
+  ], hints: [
+    // Door region → force sum = 6
+    { cells: [[4,3],[4,4],[5,3],[5,4]], constraint: { type: 'text', value: '6' } },
+  ]},
+  // Key
+  { shape: [
+    '.####.',
+    '.#..#.',
+    '.####.',
+    '...##.',
+    '...##.',
+    '...###',
+    '...##.',
+    '...###',
+  ], hints: [
+    // Teeth → force equal (uniform teeth)
+    { cells: [[5,3],[5,4],[5,5],[6,3],[6,4],[7,3],[7,4],[7,5]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Cup / mug
+  { shape: [
+    '######..',
+    '######..',
+    '######.#',
+    '######.#',
+    '.####...',
+    '########',
+  ]},
+  // Mushroom
+  { shape: [
+    '..####..',
+    '.######.',
+    '########',
+    '########',
+    '..####..',
+    '..####..',
+  ], hints: [
+    // Cap → force equal
+    { cells: [[0,2],[0,3],[0,4],[0,5],[1,1],[1,2],[1,3],[1,4],[1,5],[1,6]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Tree
+  { shape: [
+    '...##...',
+    '..####..',
+    '.######.',
+    '########',
+    '...##...',
+    '...##...',
+  ]},
+  // Boat
+  { shape: [
+    '...##...',
+    '...##...',
+    '...##...',
+    '.######.',
+    '########',
+    '.######.',
+  ]},
+  // Rocket
+  { shape: [
+    '..##..',
+    '.####.',
+    '.####.',
+    '######',
+    '######',
+    '.####.',
+    '.#..#.',
+  ]},
+  // Crown
+  { shape: [
+    '#.##.#',
+    '######',
+    '######',
+    '.####.',
+    '######',
+  ], hints: [
+    // Points at top → force equal
+    { cells: [[0,0],[0,2],[0,3],[0,5]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Star
+  { shape: [
+    '...##...',
+    '..####..',
+    '########',
+    '.######.',
+    '..####..',
+    '.##..##.',
+  ]},
+  // Lightning bolt
+  { shape: [
+    '..####',
+    '..####',
+    '.####.',
+    '####..',
+    '####..',
+    '##....',
+  ]},
+  // Sword
+  { shape: [
+    '..##..',
+    '..##..',
+    '..##..',
+    '..##..',
+    '######',
+    '..##..',
+    '.####.',
+  ], hints: [
+    // Blade (long thin section) → force equal (uniform blade)
+    { cells: [[0,2],[0,3],[1,2],[1,3],[2,2],[2,3],[3,2],[3,3]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Anchor
+  { shape: [
+    '..##..',
+    '.####.',
+    '..##..',
+    '..##..',
+    '..##..',
+    '######',
+    '.#..#.',
+  ]},
+  // Bell
+  { shape: [
+    '..##..',
+    '.####.',
+    '.####.',
+    '######',
+    '######',
+    '..##..',
+  ]},
+
+  // ── Symbols ───────────────────────────────────────────────────
+  // Skull
+  { shape: [
+    '.######.',
+    '########',
+    '##.##.##',
+    '########',
+    '.######.',
+    '..#..#..',
+  ]},
+  // Smiley face
+  { shape: [
+    '.######.',
+    '########',
+    '#.##.###',
+    '########',
+    '#.####.#',
+    '.######.',
+  ]},
+  // Music note
+  { shape: [
     '....####',
-    '......##',
-  ],
-  // 1 (number)
-  [
+    '....####',
+    '....##..',
+    '....##..',
+    '.####...',
+    '.####...',
+  ], hints: [
+    // Note head → force equal (ringing tone)
+    { cells: [[4,1],[4,2],[4,3],[4,4],[5,1],[5,2],[5,3],[5,4]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Exclamation mark
+  { shape: [
+    '##',
+    '##',
+    '##',
+    '##',
+    '..',
+    '##',
+  ], hints: [
+    // Dot → force sum = 0
+    { cells: [[5,0],[5,1]], constraint: { type: 'text', value: '0' } },
+  ]},
+  // Question mark
+  { shape: [
+    '.####.',
+    '##..##',
+    '...##.',
+    '..##..',
+    '..##..',
+    '......',
+    '..##..',
+  ]},
+
+  // ── Letters / Numbers ─────────────────────────────────────────
+  // Digit 0
+  { shape: [
+    '.####.',
+    '##..##',
+    '##..##',
+    '##..##',
+    '##..##',
+    '.####.',
+  ]},
+  // Digit 1
+  { shape: [
     '.##.',
-    '###.',
+    '####',
     '.##.',
     '.##.',
     '.##.',
     '####',
-  ],
-  // 7 (number)
-  [
+    '####',
+  ]},
+  // Digit 2
+  { shape: [
+    '.####.',
+    '##..##',
+    '...##.',
+    '..##..',
+    '.##...',
+    '######',
+  ]},
+  // Digit 3
+  { shape: [
+    '######',
+    '....##',
+    '.####.',
+    '....##',
+    '....##',
+    '######',
+  ]},
+  // Digit 4
+  { shape: [
+    '##..##',
+    '##..##',
+    '######',
+    '....##',
+    '....##',
+    '....##',
+  ]},
+  // Digit 5
+  { shape: [
+    '######',
+    '##....',
+    '######',
+    '....##',
+    '....##',
+    '######',
+  ]},
+  // Digit 6
+  { shape: [
+    '.####.',
+    '##....',
+    '######',
+    '##..##',
+    '##..##',
+    '.####.',
+  ]},
+  // Digit 7
+  { shape: [
     '######',
     '...##.',
     '..##..',
     '.##...',
     '.##...',
     '.##...',
-  ],
-  // C shape
-  [
+  ]},
+  // Digit 8
+  { shape: [
     '.####.',
     '##..##',
-    '##....',
-    '##....',
+    '.####.',
+    '##..##',
     '##..##',
     '.####.',
-  ],
+  ]},
+  // Digit 9
+  { shape: [
+    '.####.',
+    '##..##',
+    '##..##',
+    '.####.',
+    '...##.',
+    '.####.',
+  ]},
+  // Letter A
+  { shape: [
+    '..##..',
+    '.####.',
+    '##..##',
+    '######',
+    '##..##',
+    '##..##',
+  ]},
+  // Letter P
+  { shape: [
+    '#####.',
+    '##..##',
+    '##..##',
+    '#####.',
+    '##....',
+    '##....',
+  ]},
+  // Letter S (zigzag)
+  { shape: [
+    '.####.',
+    '##..##',
+    '.###..',
+    '..###.',
+    '##..##',
+    '.####.',
+  ]},
+
+  // ── Geometric / Classic ───────────────────────────────────────
+  // Heart
+  { shape: [
+    '.##.##.',
+    '#######',
+    '#######',
+    '.#####.',
+    '..###..',
+    '...#...',
+    '...#...',
+  ], hints: [
+    // Center column → force equal
+    { cells: [[1,3],[2,3],[3,3],[4,3]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Plus / cross
+  { shape: [
+    '..##..',
+    '..##..',
+    '######',
+    '######',
+    '..##..',
+    '..##..',
+  ]},
+  // Diamond
+  { shape: [
+    '..##..',
+    '.####.',
+    '######',
+    '######',
+    '.####.',
+    '..##..',
+  ]},
+  // T shape
+  { shape: [
+    '######',
+    '######',
+    '..##..',
+    '..##..',
+    '..##..',
+    '..##..',
+  ]},
+  // Arrow right
+  { shape: [
+    '..##....',
+    '..####..',
+    '########',
+    '########',
+    '..####..',
+    '..##....',
+  ], hints: [
+    // Shaft → force equal
+    { cells: [[2,0],[2,1],[3,0],[3,1]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // H shape
+  { shape: [
+    '##..##',
+    '##..##',
+    '######',
+    '######',
+    '##..##',
+    '##..##',
+  ]},
+  // Frame / ring
+  { shape: [
+    '######',
+    '##..##',
+    '##..##',
+    '##..##',
+    '######',
+  ], hints: [
+    // Inner border → force inequality
+    { cells: [[1,1],[1,4],[2,1],[2,4],[3,1],[3,4]], constraint: { type: 'text', value: '>10' } },
+  ]},
   // X shape
-  [
+  { shape: [
     '##..##',
     '.####.',
     '..##..',
     '.####.',
     '##..##',
-  ],
+  ]},
+  // U shape
+  { shape: [
+    '##..##',
+    '##..##',
+    '##..##',
+    '######',
+    '######',
+  ]},
+  // L shape
+  { shape: [
+    '##....',
+    '##....',
+    '##....',
+    '##....',
+    '######',
+    '######',
+  ]},
+  // Staircase
+  { shape: [
+    '##......',
+    '####....',
+    '..####..',
+    '....####',
+    '......##',
+  ]},
+
+  // ── Multi-island designs ──────────────────────────────────────
+  // Eyes (two ovals)
+  { shape: [
+    '.##..##.',
+    '####.###',
+    '####.###',
+    '.##..##.',
+  ]},
+  // Dice face (three pairs)
+  { shape: [
+    '##.....',
+    '##.....',
+    '...##..',
+    '...##..',
+    '.....##',
+    '.....##',
+  ]},
+  // Ellipsis dots
+  { shape: [
+    '##..##..##',
+    '##..##..##',
+  ]},
+  // Footprints
+  { shape: [
+    '.##....',
+    '.##....',
+    '##.....',
+    '....##.',
+    '....##.',
+    '...##..',
+  ]},
+  // Constellation (scattered pairs)
+  { shape: [
+    '##.......#',
+    '.........#',
+    '..##......',
+    '......##..',
+    '#.........',
+    '#......##.',
+  ]},
+  // Parentheses
+  { shape: [
+    '.##..##.',
+    '##....##',
+    '##....##',
+    '##....##',
+    '.##..##.',
+  ]},
+  // Colon
+  { shape: [
+    '##',
+    '##',
+    '..',
+    '..',
+    '##',
+    '##',
+  ]},
+  // Quotation marks
+  { shape: [
+    '##.##',
+    '##.##',
+    '#..#.',
+    '#..#.',
+  ]},
+  // Cherry (two blobs)
+  { shape: [
+    '.##..##.',
+    '####.##.',
+    '####.##.',
+    '.##..##.',
+  ]},
+  // Two islands side by side
+  { shape: [
+    '###.###',
+    '###.###',
+    '###.###',
+    '###.###',
+  ]},
+  // Two islands stacked
+  { shape: [
+    '######',
+    '######',
+    '......',
+    '######',
+    '######',
+  ]},
+
+  // ── More animals ──────────────────────────────────────────────
+  // Crab
+  { shape: [
+    '#.####.#',
+    '########',
+    '.######.',
+    '.##..##.',
+  ]},
+  // Elephant
+  { shape: [
+    '.######.',
+    '########',
+    '########',
+    '##.##...',
+    '##.##...',
+    '...##...',
+  ]},
+  // Duck
+  { shape: [
+    '.##.....',
+    '####....',
+    '.######.',
+    '.######.',
+    '..####..',
+  ]},
+  // Penguin
+  { shape: [
+    '..####..',
+    '.######.',
+    '.##..##.',
+    '.######.',
+    '..####..',
+    '..#..#..',
+  ]},
+  // Spider
+  { shape: [
+    '##.##.##',
+    '.######.',
+    '..####..',
+    '.######.',
+    '##.##.##',
+  ]},
+
+  // ── More objects with hints ───────────────────────────────────
+  // Hourglass
+  { shape: [
+    '######',
+    '.####.',
+    '..##..',
+    '.####.',
+    '######',
+  ], hints: [
+    // Narrow middle → force equal
+    { cells: [[2,2],[2,3]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Potion bottle
+  { shape: [
+    '..##..',
+    '..##..',
+    '.####.',
+    '######',
+    '######',
+    '.####.',
+  ], hints: [
+    // Bottle neck → force sum = 0
+    { cells: [[0,2],[0,3],[1,2],[1,3]], constraint: { type: 'text', value: '0' } },
+  ]},
+  // Shield
+  { shape: [
+    '########',
+    '########',
+    '######..',
+    '.####...',
+    '..##....',
+  ], hints: [
+    // Shield center → force equal
+    { cells: [[1,2],[1,3],[1,4],[1,5],[2,2],[2,3],[2,4],[2,5]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Candle
+  { shape: [
+    '..##..',
+    '..##..',
+    '.####.',
+    '.####.',
+    '.####.',
+    '..##..',
+  ], hints: [
+    // Flame → force high sum
+    { cells: [[0,2],[0,3]], constraint: { type: 'text', value: '>8' } },
+  ]},
+  // Trophy
+  { shape: [
+    '########',
+    '.######.',
+    '..####..',
+    '...##...',
+    '..####..',
+    '..####..',
+  ], hints: [
+    // Cup rim → force equal
+    { cells: [[0,0],[0,1],[0,2],[0,3],[0,4],[0,5],[0,6],[0,7]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Axe
+  { shape: [
+    '.####.',
+    '######',
+    '.####.',
+    '...##.',
+    '...##.',
+    '...##.',
+  ], hints: [
+    // Axe head → force equal
+    { cells: [[0,1],[0,2],[0,3],[0,4],[1,0],[1,1],[1,2],[1,3],[1,4],[1,5],[2,1],[2,2],[2,3],[2,4]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+
+  // ── More symbols with hints ───────────────────────────────────
+  // Peace sign
+  { shape: [
+    '.####.',
+    '##..##',
+    '##.###',
+    '##.###',
+    '##..##',
+    '.####.',
+  ], hints: [
+    // Center line → force equal
+    { cells: [[2,2],[3,2],[2,3],[3,3]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+  // Infinity / figure 8
+  { shape: [
+    '.##..##.',
+    '####.###',
+    '####.###',
+    '.##..##.',
+  ]},
+  // Percent sign
+  { shape: [
+    '##..##',
+    '##.##.',
+    '..##..',
+    '.##.##',
+    '##..##',
+  ]},
+  // At sign @
+  { shape: [
+    '.######.',
+    '##....##',
+    '##.##.##',
+    '##.##.##',
+    '##......',
+    '.######.',
+  ]},
+
+  // ── More geometric ────────────────────────────────────────────
+  // Chevron
+  { shape: [
+    '##....##',
+    '.##..##.',
+    '..####..',
+    '.##..##.',
+    '##....##',
+  ]},
+  // Tetris Z
+  { shape: [
+    '####....',
+    '..####..',
+    '....####',
+  ]},
+  // Pinwheel
+  { shape: [
+    '.####.',
+    '.####.',
+    '######',
+    '######',
+    '.####.',
+    '.####.',
+  ]},
+  // Bowtie
+  { shape: [
+    '##..##',
+    '.####.',
+    '..##..',
+    '.####.',
+    '##..##',
+  ], hints: [
+    // Center knot → force equal
+    { cells: [[2,2],[2,3]], constraint: { type: 'symbol', value: 'equal' } },
+  ]},
+
+  // ── More multi-island ─────────────────────────────────────────
+  // Domino pair
+  { shape: [
+    '####.####',
+    '####.####',
+  ]},
+  // Three dots (vertical)
+  { shape: [
+    '##',
+    '##',
+    '..',
+    '##',
+    '##',
+    '..',
+    '##',
+    '##',
+  ]},
+  // Window panes (4 islands)
+  { shape: [
+    '##.##',
+    '##.##',
+    '.....',
+    '##.##',
+    '##.##',
+  ]},
+  // Scattered blocks
+  { shape: [
+    '##....##',
+    '##....##',
+    '........',
+    '..####..',
+    '..####..',
+  ]},
 ];
 
 /** Parse a template into a list of [row, col] offsets */
@@ -199,7 +883,7 @@ function parseTemplate(tmpl: string[]): [number, number][] {
 }
 
 /** Ensure even cell count by removing one random edge cell if odd */
-function ensureEven(cells: Set<string>, rows: number, cols: number): void {
+function ensureEven(cells: Set<string>, _rows: number, _cols: number): void {
   if (cells.size % 2 === 0) return;
   // Find edge cells (cells with fewer than 4 foundation neighbors)
   const edgeCells: string[] = [];
@@ -222,6 +906,58 @@ function ensureEven(cells: Set<string>, rows: number, cols: number): void {
     cells.delete(key);
     if (isConnected(cells)) return;
     cells.add(key);
+  }
+}
+
+/** Split a set of cells into connected components */
+function getConnectedComponents(cells: Set<string>): Set<string>[] {
+  const visited = new Set<string>();
+  const components: Set<string>[] = [];
+  for (const start of cells) {
+    if (visited.has(start)) continue;
+    const component = new Set<string>();
+    const queue = [start];
+    visited.add(start);
+    while (queue.length > 0) {
+      const key = queue.shift()!;
+      component.add(key);
+      const [r, c] = key.split('-').map(Number);
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        const nk = `${r + dr}-${c + dc}`;
+        if (cells.has(nk) && !visited.has(nk)) {
+          visited.add(nk);
+          queue.push(nk);
+        }
+      }
+    }
+    components.push(component);
+  }
+  return components;
+}
+
+/** Ensure each connected component has even cell count */
+function ensureEvenPerIsland(cells: Set<string>, _rows: number, _cols: number): void {
+  const components = getConnectedComponents(cells);
+  for (const component of components) {
+    if (component.size % 2 === 0) continue;
+    // Find edge cells within this component
+    const edgeCells: string[] = [];
+    for (const key of component) {
+      const [r, c] = key.split('-').map(Number);
+      let neighbors = 0;
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        if (component.has(`${r + dr}-${c + dc}`)) neighbors++;
+      }
+      if (neighbors < 4) edgeCells.push(key);
+    }
+    // Remove an edge cell that keeps this component connected
+    for (const key of shuffle(edgeCells)) {
+      component.delete(key);
+      cells.delete(key);
+      if (component.size === 0 || isConnected(component)) break;
+      component.add(key);
+      cells.add(key);
+    }
   }
 }
 
@@ -322,13 +1058,13 @@ function generateSymmetric(targetSize: number, rows: number, cols: number): Set<
   return cells;
 }
 
-/** Place a template centered on the grid, return foundation set */
-function placeTemplate(tmpl: string[]): Set<string> | null {
-  const offsets = parseTemplate(tmpl);
+/** Place a template centered on the grid, return foundation set and template origin offset */
+function placeTemplate(tmpl: ShapeTemplate): { cells: Set<string>; startR: number; startC: number } | null {
+  const offsets = parseTemplate(tmpl.shape);
   if (offsets.length === 0) return null;
 
-  const tmplRows = tmpl.length;
-  const tmplCols = Math.max(...tmpl.map(r => r.length));
+  const tmplRows = tmpl.shape.length;
+  const tmplCols = Math.max(...tmpl.shape.map(r => r.length));
   const startR = Math.floor((GRID_ROWS - tmplRows) / 2);
   const startC = Math.floor((GRID_COLS - tmplCols) / 2);
 
@@ -340,61 +1076,38 @@ function placeTemplate(tmpl: string[]): Set<string> | null {
     cells.add(`${gr}-${gc}`);
   }
 
-  ensureEven(cells, GRID_ROWS, GRID_COLS);
-  return cells;
+  // For multi-island templates, ensure each island has even cell count
+  ensureEvenPerIsland(cells, GRID_ROWS, GRID_COLS);
+  return { cells, startR, startC };
 }
 
-/** Generate a random rectangular foundation */
-function generateRect(): Set<string> {
-  // Random dimensions: 3–8 rows, 4–10 cols, must be even area
-  const shapes = [
-    { rows: 4, cols: 6 },  // classic
-    { rows: 3, cols: 8 },  // wide
-    { rows: 6, cols: 4 },  // tall
-    { rows: 5, cols: 6 },  // medium
-    { rows: 4, cols: 8 },  // wide medium
-    { rows: 6, cols: 6 },  // square-ish
-    { rows: 3, cols: 6 },  // small wide
-    { rows: 4, cols: 4 },  // small square
-    { rows: 6, cols: 8 },  // large
-    { rows: 8, cols: 6 },  // tall large
-    { rows: 2, cols: 8 },  // very thin wide
-    { rows: 8, cols: 4 },  // very thin tall
-  ];
-
-  const shape = pick(shapes);
-  const startR = Math.floor((GRID_ROWS - shape.rows) / 2);
-  const startC = Math.floor((GRID_COLS - shape.cols) / 2);
-  const cells = new Set<string>();
-  for (let r = 0; r < shape.rows; r++) {
-    for (let c = 0; c < shape.cols; c++) {
-      cells.add(`${startR + r}-${startC + c}`);
-    }
-  }
-  return cells;
-}
+/** Track which template was used for hint application */
+let lastUsedTemplate: ShapeTemplate | null = null;
+let lastTemplateOrigin: { startR: number; startC: number } | null = null;
 
 /** Top-level: pick a random foundation strategy */
 function generateFoundation(): Set<string> {
+  lastUsedTemplate = null;
+  lastTemplateOrigin = null;
   const strategy = Math.random();
 
-  if (strategy < 0.25) {
-    // Template shape
+  if (strategy < 0.50) {
+    // Template shape (50%)
     const tmpl = pick(SHAPE_TEMPLATES);
     const result = placeTemplate(tmpl);
-    if (result && result.size >= 6) return result;
-  }
-
-  if (strategy < 0.45) {
-    // Symmetric blob
+    if (result && result.cells.size >= 6) {
+      lastUsedTemplate = tmpl;
+      lastTemplateOrigin = { startR: result.startR, startC: result.startC };
+      return result.cells;
+    }
+  } else if (strategy < 0.75) {
+    // Symmetric blob (25%)
     const target = 16 + Math.floor(Math.random() * 20); // 16–36
     const cells = generateSymmetric(target, GRID_ROWS, GRID_COLS);
     ensureEven(cells, GRID_ROWS, GRID_COLS);
     if (cells.size >= 6 && isConnected(cells)) return cells;
-  }
-
-  if (strategy < 0.65) {
-    // Random blob
+  } else {
+    // Random blob (25%)
     const target = 14 + Math.floor(Math.random() * 24); // 14–38
     const startR = 1 + Math.floor(Math.random() * (GRID_ROWS - 2));
     const startC = 1 + Math.floor(Math.random() * (GRID_COLS - 2));
@@ -403,8 +1116,21 @@ function generateFoundation(): Set<string> {
     if (cells.size >= 6) return cells;
   }
 
-  // Fallback: rectangle
-  return generateRect();
+  // Fallback: pick a random template
+  const tmpl = pick(SHAPE_TEMPLATES);
+  const result = placeTemplate(tmpl);
+  if (result && result.cells.size >= 6) {
+    lastUsedTemplate = tmpl;
+    lastTemplateOrigin = { startR: result.startR, startC: result.startC };
+    return result.cells;
+  }
+
+  // Ultimate fallback: plus/cross (index 1 in geometric section — known-good)
+  const plusTemplate = SHAPE_TEMPLATES.find(t => t.shape.length === 6 && t.shape[0] === '..##..' && t.shape[2] === '######')!;
+  const plusResult = placeTemplate(plusTemplate)!;
+  lastUsedTemplate = plusTemplate;
+  lastTemplateOrigin = { startR: plusResult.startR, startC: plusResult.startC };
+  return plusResult.cells;
 }
 
 // ── Foundation-aware helpers ─────────────────────────────────────
@@ -771,6 +1497,7 @@ function nudgeEqualRegions(
   dominoes: Domino[],
   cellToRegion: Map<number, number>,
   keyToIdx: Map<string, number>,
+  skipRegions?: Set<number>,
 ): void {
   const cellSlot = new Map<number, { slotIdx: number; half: 'first' | 'second' }>();
   for (let i = 0; i < slots.length; i++) {
@@ -787,7 +1514,8 @@ function nudgeEqualRegions(
     regionCells.get(rid)!.push(idx);
   }
 
-  const regions = shuffle([...regionCells.entries()].filter(([, c]) => c.length >= 2 && c.length <= 5))
+  const regions = shuffle([...regionCells.entries()]
+    .filter(([rid, c]) => c.length >= 2 && c.length <= 5 && (!skipRegions || !skipRegions.has(rid))))
     .sort((a, b) => b[1].length - a[1].length);
   let nudged = 0;
 
@@ -829,6 +1557,181 @@ function nudgeEqualRegions(
   }
 }
 
+// ── Hint Resolution ──────────────────────────────────────────────
+
+/** Resolve template hints into a map of regionId → constraint, based on current regions */
+function resolveHintedRegions(
+  cellToRegion: Map<number, number>,
+  keyToIdx: Map<string, number>,
+): Map<number, Constraint> {
+  const hinted = new Map<number, Constraint>();
+  if (!lastUsedTemplate?.hints || !lastTemplateOrigin) return hinted;
+
+  for (const hint of lastUsedTemplate.hints) {
+    const hintIndices: number[] = [];
+    let allFound = true;
+    for (const [tr, tc] of hint.cells) {
+      const gr = lastTemplateOrigin!.startR + tr;
+      const gc = lastTemplateOrigin!.startC + tc;
+      const idx = keyToIdx.get(`${gr}-${gc}`);
+      if (idx === undefined) { allFound = false; break; }
+      hintIndices.push(idx);
+    }
+    if (!allFound) {
+      console.warn(`[puzzleGen] Hint skipped: not all target cells found on grid`);
+      continue;
+    }
+
+    const touchedRegions = new Set<number>();
+    for (const idx of hintIndices) {
+      const rid = cellToRegion.get(idx);
+      if (rid !== undefined) touchedRegions.add(rid);
+    }
+
+    for (const rid of touchedRegions) {
+      hinted.set(rid, hint.constraint);
+    }
+  }
+
+  return hinted;
+}
+
+// ── Hint-aware Domino Assignment ─────────────────────────────────
+
+/**
+ * Assign dominoes while respecting hint constraints. Regions are grown BEFORE this
+ * runs, so the backtracker can check constraints incrementally as it places pieces.
+ */
+function assignDominoesHintAware(
+  slots: TilingSlot[],
+  cellToRegion: Map<number, number>,
+  keyToIdx: Map<string, number>,
+  hintedRegions: Map<number, Constraint>,
+): Domino[] {
+  const allPieces: [number, number][] = [];
+  for (let i = 0; i <= 6; i++) {
+    for (let j = i; j <= 6; j++) {
+      allPieces.push([i, j]);
+    }
+  }
+
+  const shuffledPieces = shuffle(allPieces);
+  const result: Domino[] = new Array(slots.length);
+  const used: boolean[] = new Array(shuffledPieces.length).fill(false);
+
+  // Precompute: for each slot, which cell indices and region IDs
+  const slotInfo = slots.map(s => {
+    const idx1 = keyToIdx.get(`${s.r1}-${s.c1}`)!;
+    const idx2 = keyToIdx.get(`${s.r2}-${s.c2}`)!;
+    return { idx1, idx2, rid1: cellToRegion.get(idx1)!, rid2: cellToRegion.get(idx2)! };
+  });
+
+  // Track assigned pips
+  const cellPips = new Map<number, number>();
+
+  // For each hinted region, collect its cell indices
+  const regionCellSets = new Map<number, number[]>();
+  for (const [idx, rid] of cellToRegion) {
+    if (hintedRegions.has(rid)) {
+      if (!regionCellSets.has(rid)) regionCellSets.set(rid, []);
+      regionCellSets.get(rid)!.push(idx);
+    }
+  }
+
+  function checkHintedRegion(rid: number): boolean {
+    const constraint = hintedRegions.get(rid);
+    if (!constraint) return true;
+
+    const cells = regionCellSets.get(rid)!;
+    const assigned: number[] = [];
+    let allAssigned = true;
+    for (const ci of cells) {
+      const pip = cellPips.get(ci);
+      if (pip !== undefined) assigned.push(pip);
+      else allAssigned = false;
+    }
+    if (assigned.length === 0) return true;
+
+    if (constraint.type === 'symbol' && constraint.value === 'equal') {
+      // All assigned cells must have the same value
+      if (!assigned.every(v => v === assigned[0])) return false;
+    } else if (constraint.type === 'text') {
+      const val = constraint.value;
+      const sum = assigned.reduce((a, b) => a + b, 0);
+      const remaining = cells.length - assigned.length;
+
+      if (val.startsWith('>')) {
+        const threshold = parseInt(val.slice(1));
+        if (allAssigned && sum <= threshold) return false;
+        // Pruning: even with max remaining (6 per cell), can we exceed threshold?
+        if (sum + remaining * 6 <= threshold) return false;
+      } else if (val.startsWith('<')) {
+        const threshold = parseInt(val.slice(1));
+        // Already too high even with 0s remaining
+        if (sum >= threshold) return false;
+      } else {
+        const target = parseInt(val);
+        if (allAssigned && sum !== target) return false;
+        if (sum > target) return false;
+        if (sum + remaining * 6 < target) return false;
+      }
+    }
+    return true;
+  }
+
+  let attempts = 0;
+  const MAX_ATTEMPTS = 50000;
+
+  function solve(idx: number): boolean {
+    if (++attempts > MAX_ATTEMPTS) return false;
+    if (idx === slots.length) return true;
+    const { idx1, idx2, rid1, rid2 } = slotInfo[idx];
+
+    for (let p = 0; p < shuffledPieces.length; p++) {
+      if (used[p]) continue;
+      if (attempts > MAX_ATTEMPTS) return false;
+      const [a, b] = shuffledPieces[p];
+
+      // Try (a, b)
+      used[p] = true;
+      result[idx] = { id: `${a}-${b}`, first: a, second: b };
+      cellPips.set(idx1, a);
+      cellPips.set(idx2, b);
+      if (checkHintedRegion(rid1) && checkHintedRegion(rid2) && solve(idx + 1)) return true;
+
+      // Try (b, a) if not double
+      if (a !== b) {
+        result[idx] = { id: `${a}-${b}`, first: b, second: a };
+        cellPips.set(idx1, b);
+        cellPips.set(idx2, a);
+        if (checkHintedRegion(rid1) && checkHintedRegion(rid2) && solve(idx + 1)) return true;
+      }
+
+      used[p] = false;
+      cellPips.delete(idx1);
+      cellPips.delete(idx2);
+    }
+    return false;
+  }
+
+  if (!solve(0)) {
+    const hintSummary = [...hintedRegions.entries()]
+      .map(([rid, c]) => `region ${rid}: "${c.type === 'symbol' ? c.value : c.value}"`)
+      .join(', ');
+    console.warn(`[puzzleGen] Hint-aware assignment failed (${hintSummary}), falling back to unconstrained`);
+    return assignDominoes(slots);
+  }
+
+  // Log which hints were successfully enforced
+  for (const [rid, constraint] of hintedRegions) {
+    const label = constraint.type === 'symbol' ? constraint.value : constraint.value;
+    const cells = regionCellSets.get(rid);
+    console.log(`[puzzleGen] Hint enforced: region ${rid} (${cells?.length ?? '?'} cells), constraint "${label}"`);
+  }
+
+  return result;
+}
+
 // ── Main Generator ───────────────────────────────────────────────
 
 export function generatePuzzle(): GeneratedPuzzle {
@@ -841,20 +1744,30 @@ export function generatePuzzle(): GeneratedPuzzle {
     const slots = generateRandomTiling(foundation);
     if (!slots) continue; // shape not tileable, retry
 
-    // Stage 2: Assign dominoes
-    const dominoes = assignDominoes(slots);
-
-    // Stage 3: Region growing
+    // Stage 2: Region growing (before domino assignment so hints can guide it)
     const cellToRegion = growRegions(foundation, keyToIdx);
 
-    // Post-process: nudge equal regions
-    nudgeEqualRegions(slots, dominoes, cellToRegion, keyToIdx);
+    // Resolve which regions have hint constraints
+    const hintedRegions = resolveHintedRegions(cellToRegion, keyToIdx);
+
+    // Stage 3: Assign dominoes (hint-aware if there are hints)
+    const dominoes = hintedRegions.size > 0
+      ? assignDominoesHintAware(slots, cellToRegion, keyToIdx, hintedRegions)
+      : assignDominoes(slots);
+
+    // Post-process: nudge equal regions (skip hinted regions — they're already forced)
+    nudgeEqualRegions(slots, dominoes, cellToRegion, keyToIdx, new Set(hintedRegions.keys()));
 
     // Graph color
     const regionColors = colorRegions(cellToRegion, foundation, keyToIdx);
 
-    // Stage 4: Constraints
+    // Stage 4: Derive constraints from actual pip values
     const regionConstraints = deriveConstraints(slots, dominoes, cellToRegion, keyToIdx);
+
+    // Override derived constraints with hint labels (pips already satisfy them)
+    for (const [rid, constraint] of hintedRegions) {
+      regionConstraints.set(rid, constraint);
+    }
 
     // Build the board on the full work grid
     const board: BoardState = Array.from({ length: GRID_ROWS }, () =>
@@ -906,14 +1819,10 @@ export function generatePuzzle(): GeneratedPuzzle {
 }
 
 function generatePuzzleFallback(): GeneratedPuzzle {
-  const rows = 4, cols = 6;
-  const foundation = new Set<string>();
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      // Center on work grid
-      foundation.add(`${Math.floor((GRID_ROWS - rows) / 2) + r}-${Math.floor((GRID_COLS - cols) / 2) + c}`);
-    }
-  }
+  // Use plus/cross template — known-good, always tileable
+  const plusTemplate = SHAPE_TEMPLATES.find(t => t.shape.length === 6 && t.shape[0] === '..##..' && t.shape[2] === '######')!;
+  const result = placeTemplate(plusTemplate)!;
+  const foundation = result.cells;
   const { cells: fCells, keyToIdx } = buildFoundationIndex(foundation);
   const slots = generateRandomTiling(foundation)!;
   const dominoes = assignDominoes(slots);
