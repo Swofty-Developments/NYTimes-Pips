@@ -1,0 +1,83 @@
+/* ── Background Cell ─────────────────────────────────────────── */
+.backgroundCell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: visible;
+}
+
+.backgroundCell.editable {
+  cursor: pointer;
+}
+
+/* Lighter inner beige */
+.backgroundCell::before {
+  position: absolute;
+  z-index: 1;
+  content: "";
+  background-color: var(--bg-board-inner);
+  width: 95%;
+  height: 95%;
+  border-radius: var(--board-border-radius);
+}
+
+/* ── Region Cell ────────────────────────────────────────────── */
+/* Position and size set by inline styles from computeRegionExtent */
+.regionCell {
+  position: absolute;
+  z-index: 2;
+}
+
+/* Background layer: region color with border-radius that clips
+   inside corners to create concave curves. */
+.regionBg {
+  position: absolute;
+  inset: 0;
+}
+
+/* Border layer: border-image stays square (border-image ignores
+   border-radius, so it lives on a separate element). */
+.regionBorder {
+  position: absolute;
+  inset: 0;
+  border-style: solid;
+  border-color: transparent;
+  box-sizing: border-box;
+}
+
+/* ── Constraint Diamond Label ───────────────────────────────── */
+/* Original position: hangs off the bottom-right of the cell */
+.regionLabel {
+  position: absolute;
+  width: 37.65px;
+  height: 37.65px;
+  top: 31.65px;
+  left: 30.23px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
+
+/* ── Symbol inside diamond ──────────────────────────────────── */
+.symbolIcon {
+  width: 100%;
+  height: 100%;
+  display: block;
+  background-position: 50% 50%;
+  background-size: 50% 50%;
+  background-repeat: no-repeat;
+}
+
+/* ── Text label inside diamond (numbers, <2, >4, etc.) ────── */
+.textLabel {
+  color: white;
+  font-size: 15.25px;
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}

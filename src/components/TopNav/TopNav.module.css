@@ -1,0 +1,60 @@
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: #f5f0ed;
+  width: 100%;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.tab {
+  padding: 8px 20px;
+  border: 2px solid #dbc2b9;
+  border-radius: 8px;
+  background: white;
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  color: #6b5147;
+  transition: all 0.15s;
+  text-decoration: none;
+}
+
+.tab:hover {
+  background: #f0e6e0;
+}
+
+.tabActive {
+  background: #6b5147;
+  color: white;
+  border-color: #6b5147;
+}
+
+.tabActive:hover {
+  background: #5a4339;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.githubLink {
+  padding: 8px 16px;
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #6b5147;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.githubLink:hover {
+  background: #f0e6e0;
+}

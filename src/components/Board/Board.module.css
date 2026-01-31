@@ -1,0 +1,34 @@
+.board {
+  display: grid;
+  padding: 4px;
+  background: #dbc2b9;
+  border-radius: 12px;
+}
+
+/* ── Cell Wrapper (for drop zone + domino overlay) ─────────── */
+.cellWrapper {
+  position: relative;
+}
+
+.cellWrapper.dropTarget {
+  outline: 2px dashed rgba(18, 18, 18, 0.4);
+  outline-offset: -2px;
+  border-radius: 4px;
+}
+
+/* ── Placed Domino Overlay ─────────────────────────────────── */
+/* Position set by inline style — extends into grid gap toward partner half */
+.dominoOverlay {
+  position: absolute;
+  z-index: 1;
+}
+
+/* ── Selection highlight on board domino halves ────────────── */
+.dominoOverlay.selected {
+  z-index: 10;
+}
+
+.dominoOverlay.isDragSource {
+  opacity: 0.3;
+  pointer-events: none;
+}

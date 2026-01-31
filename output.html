@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pips L-Shape — Correct Implementation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Libre+Franklin:wght@800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --cell-size: 47.07px;
+      --grid-gap: 4px;
+      --gap-half: 2px;
+      --border-width: 15.77px;
+      --border-radius: 5.61px;
+      --bg-outer: #dbc2b9;
+      --bg-inner: #e1cbc5;
+      --region-bg: rgba(128, 70, 177, 0.3);
+      --region-stroke: #7000CF;
+      --region-fill: #9251ca;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f5f5f5;
+      gap: 40px;
+      padding: 40px;
+      font-family: system-ui, sans-serif;
+    }
+
+    /*
+     * SINGLE grid approach.
+     * Background colour shows through the gap.
+     * Coloured cells extend 2px (half gap) outward on ALL sides
+     * so adjacent different-coloured cells meet flush.
+     */
+    .board {
+      display: grid;
+      grid-template-columns: repeat(2, var(--cell-size));
+      grid-template-rows: repeat(2, var(--cell-size));
+      gap: var(--grid-gap);
+      padding: 12px;
+      background: var(--bg-outer);
+      border-radius: 12px;
+    }
+
+    /* ── Grid cell (background square) ─────────────────────── */
+    .cell {
+      width: var(--cell-size);
+      height: var(--cell-size);
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: visible;
+    }
+
+    /* Inner lighter beige */
+    .cell::before {
+      content: "";
+      position: absolute;
+      z-index: 1;
+      background: var(--bg-inner);
+      width: 95%;
+      height: 95%;
+      border-radius: var(--border-radius);
+    }
+
+    /* ── Region layer container ─────────────────────────────── */
+    /*
+     * Extends 2px outward on ALL sides via negative offsets + calc.
+     * This bridges the gap between ANY coloured neighbours.
+     */
+    .region {
+      position: absolute;
+      z-index: 2;
+      top: calc(-1 * var(--gap-half));
+      left: calc(-1 * var(--gap-half));
+      width: calc(100% + var(--grid-gap));
+      height: calc(100% + var(--grid-gap));
+    }
+
+    /*
+     * Background layer — region colour + border-radius.
+     * Separated from the border layer because border-image
+     * IGNORES border-radius in CSS. Splitting lets us clip
+     * inside corners on the background without affecting borders.
+     */
+    .region-bg {
+      position: absolute;
+      inset: 0;
+      background: var(--region-bg);
+    }
+
+    /*
+     * Border layer — border-image only, no background.
+     * border-radius is set but only affects border-width allocation
+     * at outer corners; the SVG image itself stays square.
+     */
+    .region-border {
+      position: absolute;
+      inset: 0;
+      border-style: solid;
+      border-color: transparent;
+      box-sizing: border-box;
+      border-image: url("data:image/svg+xml,%3Csvg width='478' height='478' viewBox='0 0 478 478' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='205' y='20' width='68' height='19' rx='9.5' fill='%237000CF'/%3E%3Crect x='21' y='273' width='68' height='19' rx='9.5' transform='rotate(-90 21 273)' fill='%237000CF'/%3E%3Crect x='438' y='273' width='68' height='19' rx='9.5' transform='rotate(-90 438 273)' fill='%237000CF'/%3E%3Cpath d='M69.8145 35.6898C68.2445 30.9961 70.6831 25.9235 75.4419 24.5633C80.0636 23.2422 86.0581 21.7808 92.0526 21.0341C100.301 20.0066 115.338 19.9457 124.648 20.0239C129.307 20.063 133.174 23.5776 133.726 28.2043C134.4 33.8433 129.948 38.7838 124.269 38.7302C115.745 38.6497 104.172 38.6081 97.4211 38.8669C92.5291 39.0544 87.4788 40.3459 83.2688 41.7796C77.8862 43.6127 71.6182 41.0822 69.8145 35.6898Z' fill='%237000CF'/%3E%3Cpath d='M408.186 35.6898C409.756 30.9961 407.317 25.9235 402.558 24.5633C397.936 23.2422 391.942 21.7808 385.947 21.0341C377.699 20.0066 362.662 19.9457 353.352 20.0239C348.693 20.063 344.826 23.5776 344.274 28.2043C343.6 33.8433 348.052 38.7838 353.731 38.7302C362.255 38.6497 373.828 38.6081 380.579 38.8669C385.471 39.0544 390.521 40.3459 394.731 41.7796C400.114 43.6127 406.382 41.0822 408.186 35.6898Z' fill='%237000CF'/%3E%3Cpath d='M37.5542 68.56C32.5087 66.6242 26.9037 69.3198 25.5934 74.5626C24.2645 79.88 22.7865 86.8084 22.0341 93.7368C20.9634 103.596 20.9423 121.912 21.0344 132.437C21.0748 137.044 24.5039 140.895 29.0685 141.52C34.7493 142.299 39.7933 137.844 39.7424 132.11C39.6546 122.236 39.5954 108.02 39.8669 99.8947C40.0815 93.4727 41.7421 86.8128 43.4071 81.632C45.0808 76.4237 42.6618 70.5197 37.5542 68.56Z' fill='%237000CF'/%3E%3Cpath d='M440.446 68.56C445.491 66.6242 451.096 69.3198 452.407 74.5626C453.736 79.88 455.214 86.8084 455.966 93.7368C457.037 103.596 457.058 121.912 456.966 132.437C456.925 137.044 453.496 140.895 448.932 141.52C443.251 142.299 438.207 137.844 438.258 132.11C438.345 122.236 438.405 108.02 438.133 99.8947C437.919 93.4727 436.258 86.8128 434.593 81.632C432.919 76.4237 435.338 70.5197 440.446 68.56Z' fill='%237000CF'/%3E%3Crect width='68' height='19' rx='9.5' transform='matrix(1 0 0 -1 205 456)' fill='%237000CF'/%3E%3Cpath d='M69.8145 440.31C68.2445 445.004 70.6831 450.076 75.4419 451.437C80.0636 452.758 86.0581 454.219 92.0526 454.966C100.301 455.993 115.338 456.054 124.648 455.976C129.307 455.937 133.174 452.422 133.726 447.796C134.4 442.157 129.948 437.216 124.269 437.27C115.745 437.35 104.172 437.392 97.4211 437.133C92.5291 436.946 87.4788 435.654 83.2688 434.22C77.8862 432.387 71.6182 434.918 69.8145 440.31Z' fill='%237000CF'/%3E%3Cpath d='M408.186 440.31C409.756 445.004 407.317 450.076 402.558 451.437C397.936 452.758 391.942 454.219 385.947 454.966C377.699 455.993 362.662 456.054 353.352 455.976C348.693 455.937 344.826 452.422 344.274 447.796C343.6 442.157 348.052 437.216 353.731 437.27C362.255 437.35 373.828 437.392 380.579 437.133C385.471 436.946 390.521 435.654 394.731 434.22C400.114 432.387 406.382 434.918 408.186 440.31Z' fill='%237000CF'/%3E%3Cpath d='M37.5542 407.44C32.5087 409.376 26.9037 406.68 25.5934 401.437C24.2645 396.12 22.7865 389.192 22.0341 382.263C20.9634 372.404 20.9423 354.088 21.0344 343.563C21.0748 338.956 24.5039 335.105 29.0685 334.48C34.7493 333.701 39.7933 338.156 39.7424 343.89C39.6546 353.764 39.5954 367.98 39.8669 376.105C40.0815 382.527 41.7421 389.187 43.4071 394.368C45.0808 399.576 42.6618 405.48 37.5542 407.44Z' fill='%237000CF'/%3E%3Cpath d='M440.446 407.44C445.491 409.376 451.096 406.68 452.407 401.437C453.736 396.12 455.214 389.192 455.966 382.263C457.037 372.404 457.058 354.088 456.966 343.563C456.925 338.956 453.496 335.105 448.932 334.48C443.251 333.701 438.207 338.156 438.258 343.89C438.345 353.764 438.405 367.98 438.133 376.105C437.919 382.527 436.258 389.187 434.593 394.368C432.919 399.576 435.338 405.48 440.446 407.44Z' fill='%237000CF'/%3E%3C/svg%3E") 172 round;
+    }
+
+    /* ── Constraint diamond ─────────────────────────────────── */
+    .region-label {
+      position: absolute;
+      width: 37.65px;
+      height: 37.65px;
+      top: 29.65px;
+      left: 28.23px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      background: var(--region-fill);
+      clip-path: polygon(
+        9.033% 35.294%, 3.446% 40.881%, 3.446% 40.881%, 2.205% 42.339%,
+        1.24% 43.934%, 0.551% 45.632%, 0.138% 47.399%, 0% 49.2%,
+        0.138% 51.001%, 0.551% 52.767%, 1.24% 54.465%, 2.205% 56.06%,
+        3.446% 57.519%, 40.881% 94.954%, 40.881% 94.954%, 42.339% 96.194%,
+        43.934% 97.159%, 45.632% 97.848%, 47.399% 98.262%, 49.2% 98.4%,
+        51.001% 98.262%, 52.767% 97.848%, 54.465% 97.159%, 56.06% 96.194%,
+        57.519% 94.954%, 94.954% 57.519%, 94.954% 57.519%, 96.194% 56.06%,
+        97.159% 54.465%, 97.848% 52.767%, 98.262% 51.001%, 98.4% 49.2%,
+        98.262% 47.399%, 97.848% 45.632%, 97.159% 43.934%, 96.194% 42.339%,
+        94.954% 40.881%, 57.519% 3.446%, 57.519% 3.446%, 56.06% 2.205%,
+        54.465% 1.24%, 52.767% 0.551%, 51.001% 0.138%, 49.2% 0%,
+        47.399% 0.138%, 45.632% 0.551%, 43.934% 1.24%, 42.339% 2.205%,
+        40.881% 3.446%, 38.235% 6.091%, 38.235% 17.647%, 38.235% 17.647%,
+        38.004% 20.51%, 37.336% 23.225%, 36.266% 25.757%, 34.83% 28.069%,
+        33.067% 30.125%, 31.01% 31.889%, 28.698% 33.324%, 26.166% 34.394%,
+        23.451% 35.063%, 20.588% 35.294%, 9.033% 35.294%
+      );
+    }
+
+    .equal-symbol {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: url("data:image/svg+xml,%3Csvg width='30' height='30' viewBox='0 0 30 30' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M25.9364 8.02663V13.2746H4.07788V8.02663H25.9364ZM25.9364 18.0893V23.3372H4.07788V18.0893H25.9364Z' fill='white'/%3E%3C/svg%3E") 50% 50% / 50% 50% no-repeat;
+    }
+  </style>
+</head>
+<body>
+  <h2>Pips L-Shape — Correct Implementation</h2>
+  <p style="color:#666; margin-bottom: 8px;">
+    Single grid. Cells extend into gap. Background &amp; border on separate layers.
+  </p>
+
+  <div class="board">
+    <!--
+      L-shape layout (purple = P):
+        P .
+        P P
+
+      Border flags (true = same-colour neighbour, border removed):
+        (0,0): bottom=true
+        (0,1): empty
+        (1,0): top=true, right=true  — topRight is an INSIDE CORNER
+        (1,1): left=true
+    -->
+
+    <!-- ═══ Cell (0,0): top of L ═══ -->
+    <div class="cell">
+      <div class="region">
+        <!-- Background: outer corners rounded, bottom corners 0 (strip edge) -->
+        <div class="region-bg" style="
+          border-radius: 5.61px 5.61px 0 0;
+        "></div>
+        <!-- Border: same radius, bottom border-width 0 -->
+        <div class="region-border" style="
+          border-radius: 5.61px 5.61px 0 0;
+          border-width: 15.77px 15.77px 0 15.77px;
+        "></div>
+      </div>
+    </div>
+
+    <!-- ═══ Cell (0,1): empty ═══ -->
+    <div class="cell">
+      <!-- No region layer — just the beige background -->
+    </div>
+
+    <!-- ═══ Cell (1,0): corner of L ═══ -->
+    <!-- top=true, right=true. topRight inside corner (diagonal 0,1 is empty). -->
+    <div class="cell">
+      <div class="region">
+        <!--
+          Background: inside corner at topRight gets 2px radius (concave clip).
+          borderRadius = "0  2px  0  5.61px"
+                          tl  tr   br  bl
+          - tl: top removed → 0
+          - tr: top+right removed, inside corner → 2px (concave clip)
+          - br: right removed but bottom not → 0
+          - bl: neither removed → 5.61px
+        -->
+        <div class="region-bg" style="
+          border-radius: 0 2px 0 5.61px;
+        "></div>
+        <!-- Border layer: no inside-corner radius (border-image ignores it) -->
+        <div class="region-border" style="
+          border-radius: 0 0 0 5.61px;
+          border-width: 0 0 15.77px 15.77px;
+        "></div>
+      </div>
+
+      <!-- Constraint diamond on the display cell (bottom-right-most of region) -->
+      <span class="region-label">
+        <span class="equal-symbol"></span>
+      </span>
+    </div>
+
+    <!-- ═══ Cell (1,1): right arm of L ═══ -->
+    <div class="cell">
+      <div class="region">
+        <!-- Background: left removed → tl=0, bl=0; right corners rounded -->
+        <div class="region-bg" style="
+          border-radius: 0 5.61px 5.61px 0;
+        "></div>
+        <!-- Border: left border-width 0 -->
+        <div class="region-border" style="
+          border-radius: 0 5.61px 5.61px 0;
+          border-width: 15.77px 15.77px 15.77px 0;
+        "></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

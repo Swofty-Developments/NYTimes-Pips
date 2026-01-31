@@ -1,0 +1,52 @@
+/* ── Domino Piece Container ─────────────────────────────────── */
+.dominoPiece {
+  display: inline-flex;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
+  transform: rotate(var(--rotation-deg, 0deg));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* ── Rotation fade ────────────────────────────────────────── */
+.rotateFade {
+  animation: rotateFade 0.18s ease;
+}
+
+@keyframes rotateFade {
+  0%   { opacity: 1; }
+  45%  { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* ── Selected State ────────────────────────────────────────── */
+.selected {
+  transform: rotate(var(--rotation-deg, 0deg)) scale(1.12);
+  z-index: 10;
+}
+
+.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Drag Source (faded original during drag) ──────────────── */
+.isDragSource {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* Horizontal layout: halves side by side */
+.horizontal {
+  flex-direction: row;
+}
+
+/* Vertical layout: halves stacked */
+.vertical {
+  flex-direction: column;
+}

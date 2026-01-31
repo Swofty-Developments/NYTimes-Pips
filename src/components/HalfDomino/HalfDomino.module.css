@@ -1,0 +1,182 @@
+/* ── Half Domino Base ───────────────────────────────────────── */
+.halfDomino {
+  background: rgb(246, 246, 246);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ══ TRAY VARIANT (35px per half) ══════════════════════════════ */
+.tray {
+  width: 35.0167px;
+  height: 35.0167px;
+  border: 1.26667px solid rgb(18, 18, 18);
+}
+
+.tray.isFirst {
+  border-radius: 5.27px 0 0 5.27px;
+  border-right: none;
+  box-shadow: rgb(173, 173, 173) 0px -2.666px 0px 0px inset;
+}
+
+.tray.isFirst::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 0;
+  bottom: 4px;
+  width: 1px;
+  background: rgb(226, 219, 219);
+}
+
+.tray.isSecond {
+  border-radius: 0 5.27px 5.27px 0;
+  border-left: none;
+  box-shadow: rgb(173, 173, 173) 0px -2.666px 0px 0px inset;
+}
+
+/* ── Tray shadow overrides per rotation step ──────────────────
+   The wrapper applies CSS rotate(), so we counteract it here so
+   the shadow always appears at the visual bottom.
+
+   Step 0 (0°):   default — shadow 0 -2.666 (bottom inset)
+   Step 1 (90°):  first=none, second=left inset
+   Step 2 (180°): flip shadow to 0 +2.666 (still visual-bottom after 180° flip)
+   Step 3 (270°): first=right inset, second=none
+─────────────────────────────────────────────────────────────── */
+
+/* Steps 1 & 3 (90°/270°): horizontally mirror the dots within each half
+   so the pip pattern matches physical rotation instead of CSS rotation */
+[data-rotation-mod="1"] .dotsWrapper,
+[data-rotation-mod="3"] .dotsWrapper {
+  transform: scaleX(-1);
+}
+
+/* Step 1: 90° CW — vertical, first-half on top */
+[data-rotation-mod="1"] .tray.isFirst {
+  box-shadow: none;
+}
+[data-rotation-mod="1"] .tray.isSecond {
+  box-shadow: rgb(173, 173, 173) -2.666px 0px 0px 0px inset;
+}
+
+/* Step 2: 180° — upside-down horizontal */
+[data-rotation-mod="2"] .tray.isFirst {
+  box-shadow: rgb(173, 173, 173) 0px 2.666px 0px 0px inset;
+}
+[data-rotation-mod="2"] .tray.isSecond {
+  box-shadow: rgb(173, 173, 173) 0px 2.666px 0px 0px inset;
+}
+
+/* Step 3: 270° CW — vertical, first-half on bottom */
+[data-rotation-mod="3"] .tray.isFirst {
+  box-shadow: rgb(173, 173, 173) 2.666px 0px 0px 0px inset;
+}
+[data-rotation-mod="3"] .tray.isSecond {
+  box-shadow: none;
+}
+
+/* ══ BOARD HORIZONTAL (fills cell, scaled props) ═══════════════ */
+.board {
+  width: 100%;
+  height: 100%;
+  border: 1.6px solid rgb(18, 18, 18);
+}
+
+.board.isFirst {
+  border-radius: 5.55px 0 0 5.55px;
+  border-right: none;
+  box-shadow: rgb(173, 173, 173) 0px -2.8px 0px 0px inset;
+}
+
+.board.isFirst::after {
+  content: "";
+  position: absolute;
+  top: 5.2px;
+  right: 0;
+  bottom: 5.2px;
+  width: 1px;
+  background: rgb(226, 219, 219);
+}
+
+.board.isSecond {
+  border-radius: 0 5.55px 5.55px 0;
+  border-left: none;
+  box-shadow: rgb(173, 173, 173) 0px -2.8px 0px 0px inset;
+}
+
+/* ══ BOARD VERTICAL (native — no rotation, fills cell) ═════════ */
+.boardVertical {
+  width: 100%;
+  height: 100%;
+  border: 1.6px solid rgb(18, 18, 18);
+}
+
+.boardVertical.isFirst {
+  border-radius: 5.55px 5.55px 0 0;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.boardVertical.isFirst::after {
+  content: "";
+  position: absolute;
+  left: 5.2px;
+  right: 5.2px;
+  bottom: 0;
+  height: 1px;
+  background: rgb(226, 219, 219);
+}
+
+.boardVertical.isSecond {
+  border-radius: 0 0 5.55px 5.55px;
+  border-top: none;
+  box-shadow: rgb(173, 173, 173) 0px -2.8px 0px 0px inset;
+}
+
+/* ── Dots Wrapper ──────────────────────────────────────────── */
+.dotsWrapper {
+  position: relative;
+  display: block;
+}
+
+.tray .dotsWrapper {
+  width: 21.4667px;
+  height: 20.1px;
+}
+
+.board .dotsWrapper,
+.boardVertical .dotsWrapper {
+  width: 29.9px;
+  height: 29.1px;
+}
+
+/* ── Individual Dot ────────────────────────────────────────── */
+.dot {
+  background: rgb(68, 68, 68);
+  border-radius: 50%;
+  position: absolute;
+}
+
+.tray .dot {
+  width: 6.16667px;
+  height: 6.16667px;
+}
+
+.board .dot,
+.boardVertical .dot {
+  width: 9.5px;
+  height: 9.5px;
+}
+
+/* ── Dot Positions ─────────────────────────────────────────── */
+.topLeft     { top: 0; left: 0; }
+.topRight    { top: 0; right: 0; }
+.middleLeft  { top: 0; left: 50%; transform: translateX(-50%); }
+.middle      { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+.middleRight { bottom: 0; left: 50%; transform: translateX(-50%); }
+.bottomLeft  { bottom: 0; left: 0; }
+.bottomRight { bottom: 0; right: 0; }

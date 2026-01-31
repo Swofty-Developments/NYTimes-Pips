@@ -1,0 +1,100 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+}
+
+.picker {
+  position: fixed;
+  z-index: 100;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.18), 0 1px 4px rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  min-width: 200px;
+}
+
+.header {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9b8278;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+.presets {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.presetBtn {
+  padding: 8px 4px;
+  border: 1.5px solid #e5d8d2;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #6b5147;
+  transition: all 0.12s;
+}
+
+.presetBtn:hover {
+  background: var(--picker-accent, #d15609);
+  color: white;
+  border-color: var(--picker-accent, #d15609);
+}
+
+.customForm {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.customInput {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1.5px solid #e5d8d2;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.customInput:focus {
+  border-color: var(--picker-accent, #d15609);
+}
+
+.customSubmit {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  background: var(--picker-accent, #d15609);
+  color: white;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.customSubmit:hover {
+  opacity: 0.85;
+}
+
+.removeBtn {
+  width: 100%;
+  padding: 6px;
+  border: 1.5px solid #e0c0b0;
+  border-radius: 6px;
+  background: white;
+  font-size: 12px;
+  font-weight: 600;
+  color: #c44;
+  cursor: pointer;
+  margin-top: 4px;
+}
+
+.removeBtn:hover {
+  background: #fef0f0;
+}

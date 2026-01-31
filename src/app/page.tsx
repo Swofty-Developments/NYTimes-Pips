@@ -1,66 +1,98 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import React, { useMemo } from 'react';
+import Link from 'next/link';
+import TopNav from '@/components/TopNav/TopNav';
+import BoardCell from '@/components/BoardCell/BoardCell';
+import { EmptyCell } from '@/components/EmptyCell';
+import { BOARD } from '@/constants';
+import { RegionColor } from '@/types';
+import styles from './page.module.css';
+
+const DECO_COLS = 30;
+const DECO_ROWS = 14;
+const REGION_COLORS: RegionColor[] = ['orange', 'blue', 'pink', 'teal', 'purple', 'green'];
+
+/** Simple seeded PRNG to avoid layout shift between renders */
+function seededRandom(seed: number) {
+  let s = seed;
+  return () => {
+    s = (s * 16807 + 0) % 2147483647;
+    return s / 2147483647;
+  };
+}
+
+function generateDecorativeBoard(): (RegionColor | null)[][] {
+  const rand = seededRandom(42);
+  const grid: (RegionColor | null)[][] = [];
+  for (let r = 0; r < DECO_ROWS; r++) {
+    const row: (RegionColor | null)[] = [];
+    for (let c = 0; c < DECO_COLS; c++) {
+      if (rand() < 0.6) {
+        row.push(REGION_COLORS[Math.floor(rand() * REGION_COLORS.length)]);
+      } else {
+        row.push(null);
+      }
+    }
+    grid.push(row);
+  }
+  return grid;
+}
 
 export default function Home() {
+  const decoBoard = useMemo(() => generateDecorativeBoard(), []);
+
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>To get started, edit the page.tsx file.</h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      <TopNav activeTab="home" />
+
+      <div className={styles.backgroundBoard}>
+        <div
+          className={styles.grid}
+          style={{
+            gridTemplateColumns: `repeat(${DECO_COLS}, ${BOARD.cellSize})`,
+            gridTemplateRows: `repeat(${DECO_ROWS}, ${BOARD.cellSize})`,
+          }}
+        >
+          {decoBoard.map((row, r) =>
+            row.map((color, c) =>
+              color ? (
+                <BoardCell
+                  key={`${r}-${c}`}
+                  regionColor={color}
+                />
+              ) : (
+                <EmptyCell key={`${r}-${c}`} />
+              )
+            )
+          )}
         </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className={styles.fadeOverlay} />
+      </div>
+
+      <div className={styles.content}>
+        <div className={styles.textWrapper}>
+          <div className={styles.blurBackdrop} />
+          <div className={styles.textContent}>
+            <h1 className={styles.title}>{"Swofty's NYTimes Pips"}</h1>
+            <p className={styles.subtitle}>The most faithful NYTimes recreation of Pips!</p>
+          </div>
         </div>
-      </main>
+
+        <div className={styles.cards}>
+          <Link href="/edit" className={styles.card}>
+            <div className={styles.cardIcon}>{'\u270F\uFE0F'}</div>
+            <div className={styles.cardTitle}>Edit</div>
+            <div className={styles.cardDesc}>Create a puzzle</div>
+          </Link>
+
+          <Link href="/play" className={styles.card}>
+            <div className={styles.cardIcon}>{'\uD83C\uDFB2'}</div>
+            <div className={styles.cardTitle}>Play</div>
+            <div className={styles.cardDesc}>Random puzzle</div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

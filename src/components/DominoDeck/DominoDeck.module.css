@@ -1,0 +1,40 @@
+/* ── Deck Container ─────────────────────────────────────────── */
+.deck {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 600px;
+}
+
+/* ── Deck Grid ──────────────────────────────────────────────── */
+.deckGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ── Shuffle Button ─────────────────────────────────────────── */
+.shuffleButton {
+  padding: 8px 20px;
+  border: 1.5px solid rgb(18, 18, 18);
+  border-radius: 6px;
+  background: rgb(246, 246, 246);
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: rgb(18, 18, 18);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.shuffleButton:hover {
+  background: rgb(226, 219, 219);
+}
+
+.shuffleButton:active {
+  background: rgb(200, 195, 195);
+}

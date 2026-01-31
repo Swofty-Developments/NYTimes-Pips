@@ -1,0 +1,27 @@
+.emptyCell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: var(--board-border-radius);
+  background-color: var(--bg-board-inner);
+}
+
+.emptyCell.editable {
+  cursor: pointer;
+}
+
+.emptyCell.editable:hover {
+  background-color: #d5b8ad;
+}
+
+.plusIcon {
+  z-index: 1;
+  color: #b89e94;
+  font-size: 20px;
+  font-weight: 800;
+  user-select: none;
+  pointer-events: none;
+}

@@ -1,0 +1,102 @@
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  background: #f5f0ed;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.editButton {
+  padding: 8px 20px;
+  border: 2px solid #dbc2b9;
+  border-radius: 8px;
+  background: white;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  color: #6b5147;
+  transition: all 0.15s;
+}
+
+.editButton:hover {
+  background: #f0e6e0;
+}
+
+.editButton.active {
+  background: #6b5147;
+  color: white;
+  border-color: #6b5147;
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.toolGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolGroupLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9b8278;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.toolButtons {
+  display: flex;
+  gap: 4px;
+}
+
+.toolBtn {
+  padding: 6px 14px;
+  border: 1.5px solid #dbc2b9;
+  border-radius: 6px;
+  background: white;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #6b5147;
+  transition: all 0.15s;
+}
+
+.toolBtn:hover {
+  background: #f0e6e0;
+}
+
+.toolBtn.active {
+  background: #6b5147;
+  color: white;
+  border-color: #6b5147;
+}
+
+.colorPicker {
+  display: flex;
+  gap: 6px;
+}
+
+.colorSwatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.15);
+}
+
+.colorSwatch.selected {
+  border-color: #333;
+  box-shadow: 0 0 0 2px white, 0 0 0 4px #333;
+}
