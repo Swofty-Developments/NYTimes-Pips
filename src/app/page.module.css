@@ -23,6 +23,16 @@
   padding: 8px;
 }
 
+@keyframes boardFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.boardTile {
+  opacity: 0;
+  animation: boardFadeIn 0.5s ease forwards;
+}
+
 .fadeOverlay {
   position: absolute;
   inset: 0;

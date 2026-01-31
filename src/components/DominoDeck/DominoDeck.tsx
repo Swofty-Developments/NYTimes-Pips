@@ -6,7 +6,8 @@ import { DominoPiece } from '@/components/DominoPiece';
 interface DominoDeckProps {
   dominoes: Domino[];
   placedIds: Set<string>;
-  onShuffle: () => void;
+  onShuffle?: () => void;
+  showShuffle?: boolean;
   selectedId: string | null;
   dragSourceId: string | null;
   getRotationSteps: (dominoId: string) => number;
@@ -14,23 +15,26 @@ interface DominoDeckProps {
   onDominoPointerDown: (dominoId: string, location: DominoLocation, e: React.PointerEvent) => void;
 }
 
-export default function DominoDeck({
+const DominoDeck = React.forwardRef<HTMLDivElement, DominoDeckProps>(function DominoDeck({
   dominoes,
   placedIds,
   onShuffle,
+  showShuffle,
   selectedId,
   dragSourceId,
   getRotationSteps,
   onDominoClick,
   onDominoPointerDown,
-}: DominoDeckProps) {
+}, ref) {
   const available = dominoes.filter((d) => !placedIds.has(d.id));
 
   return (
-    <div className={styles.deck}>
-      <button className={styles.shuffleButton} onClick={onShuffle}>
-        Shuffle
-      </button>
+    <div ref={ref} className={styles.deck}>
+      {showShuffle !== false && onShuffle && (
+        <button className={styles.shuffleButton} onClick={onShuffle}>
+          Shuffle
+        </button>
+      )}
       <div className={styles.deckGrid}>
         {available.map((domino) => {
           const location: DominoLocation = { area: 'deck' };
@@ -52,4 +56,6 @@ export default function DominoDeck({
       </div>
     </div>
   );
-}
+});
+
+export default DominoDeck;

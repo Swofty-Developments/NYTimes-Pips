@@ -7,6 +7,7 @@ interface UseDominoInteractionOptions {
   allDominoes: Domino[];
   placedDominoes: PlacedDomino[];
   onPlacedDominoesChange: (updater: (prev: PlacedDomino[]) => PlacedDomino[]) => void;
+  deckElementRef?: React.RefObject<HTMLElement | null>;
 }
 
 interface UseDominoInteractionReturn {
@@ -31,7 +32,9 @@ export function useDominoInteraction({
   allDominoes,
   placedDominoes,
   onPlacedDominoesChange,
+  deckElementRef,
 }: UseDominoInteractionOptions): UseDominoInteractionReturn {
+  const nullRef = useRef<HTMLElement | null>(null);
   const dominoMapRef = useRef(new Map<string, Domino>());
 
   // Keep domino lookup map in sync
@@ -226,11 +229,26 @@ export function useDominoInteraction({
     [selection, placedDominoes, computeBoardRotation]
   );
 
+  const onReturnToDeck = useCallback(
+    (dominoId: string) => {
+      // Drop the lifted domino back to the deck — just clear it without restoring to board
+      const lifted = liftedPlacementRef.current;
+      if (lifted && lifted.domino.id === dominoId) {
+        setLifted(null);
+      }
+      selection.clearSelection();
+      setTimeout(() => selection.consumeDragOccurred(), 0);
+    },
+    [selection]
+  );
+
   const dragDrop = useDominoDragDrop({
     placedDominoes,
     onPlace: onDragPlace,
     onLift: onDragLift,
     onRestore: onDragRestore,
+    onReturnToDeck,
+    deckElementRef: deckElementRef ?? nullRef,
     setDragOccurred: selection.setDragOccurred,
     getOrientation: getOrientationWithFallback,
     getRotationSteps: getRotationStepsWithFallback,

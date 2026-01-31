@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Board } from '@/components/Board';
 import { DominoDeck } from '@/components/DominoDeck';
@@ -12,7 +12,7 @@ import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
-import { generateRandomPuzzle } from '@/utils/puzzleGenerator';
+import { generatePuzzle } from '@/utils/puzzleGenerator';
 
 function createInitialDeck(): Domino[] {
   return shuffleDominoes(generateFullSet());
@@ -30,32 +30,43 @@ function PlayPageInner() {
   const searchParams = useSearchParams();
   const puzzleParam = searchParams.get('puzzle');
 
-  const [board, setBoard] = useState<BoardState>(() => {
-    // Will be overridden by useEffect if puzzleParam exists
-    return Array.from({ length: BOARD.rows }, () =>
+  // For URL-decoded puzzles, we use the full deck; for generated puzzles, we use the curated 12-piece deck
+  const [isUrlPuzzle, setIsUrlPuzzle] = useState(false);
+
+  const [board, setBoard] = useState<BoardState>(() =>
+    Array.from({ length: BOARD.rows }, () =>
       Array.from({ length: BOARD.cols }, (): CellState => ({
         regionColor: null,
         constraint: null,
       }))
-    );
-  });
+    )
+  );
 
   const [deckDominoes, setDeckDominoes] = useState<Domino[]>(createInitialDeck);
   const [placedDominoes, setPlacedDominoes] = useState<PlacedDomino[]>([]);
   const [ready, setReady] = useState(false);
+  const deckRef = useRef<HTMLDivElement>(null);
 
-  // Load puzzle from URL param or generate random
+  // Load puzzle from URL param or generate
   useEffect(() => {
     if (puzzleParam) {
       try {
         const data = decodePuzzle(puzzleParam);
         setBoard(data.board);
         setPlacedDominoes(data.placedDominoes);
+        setDeckDominoes(createInitialDeck());
+        setIsUrlPuzzle(true);
       } catch {
-        setBoard(generateRandomPuzzle());
+        const puzzle = generatePuzzle();
+        setBoard(puzzle.board);
+        setDeckDominoes(puzzle.solutionDominoes);
+        setIsUrlPuzzle(false);
       }
     } else {
-      setBoard(generateRandomPuzzle());
+      const puzzle = generatePuzzle();
+      setBoard(puzzle.board);
+      setDeckDominoes(puzzle.solutionDominoes);
+      setIsUrlPuzzle(false);
     }
     setReady(true);
   }, [puzzleParam]);
@@ -81,11 +92,21 @@ function PlayPageInner() {
     allDominoes: deckDominoes,
     placedDominoes,
     onPlacedDominoesChange: setPlacedDominoes,
+    deckElementRef: deckRef,
   });
 
   const handleShuffle = useCallback(() => {
     clearSelection();
     setDeckDominoes(shuffleDominoes(generateFullSet()));
+  }, [clearSelection]);
+
+  const handleRegenerate = useCallback(() => {
+    const puzzle = generatePuzzle();
+    setBoard(puzzle.board);
+    setDeckDominoes(puzzle.solutionDominoes);
+    setPlacedDominoes([]);
+    clearSelection();
+    setIsUrlPuzzle(false);
   }, [clearSelection]);
 
   const deckExcludeIds = useMemo(() => {
@@ -119,6 +140,7 @@ function PlayPageInner() {
     <TopNav
       activeTab="play"
       shareButton={<ShareButton getShareUrl={getShareUrl} />}
+      onRegenerate={handleRegenerate}
     />
     <div
       ref={containerRef}
@@ -206,14 +228,16 @@ function PlayPageInner() {
       </div>
 
       <DominoDeck
+        ref={deckRef}
         dominoes={deckDominoes}
         placedIds={deckExcludeIds}
-        onShuffle={handleShuffle}
         selectedId={selection?.dominoId ?? null}
         dragSourceId={dragSourceId}
         getRotationSteps={getRotationSteps}
         onDominoClick={handleDominoClick}
         onDominoPointerDown={handlePointerDown}
+        showShuffle={isUrlPuzzle}
+        onShuffle={isUrlPuzzle ? handleShuffle : undefined}
       />
 
     </div>

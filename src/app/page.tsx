@@ -54,13 +54,18 @@ export default function Home() {
           }}
         >
           {boards.map((board, i) => (
-            <Board
+            <div
               key={i}
-              board={board}
-              isEditing={false}
-              onCellClick={noop}
-              onConstraintClick={noopConstraint}
-            />
+              className={styles.boardTile}
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <Board
+                board={board}
+                isEditing={false}
+                onCellClick={noop}
+                onConstraintClick={noopConstraint}
+              />
+            </div>
           ))}
         </div>
         <div className={styles.fadeOverlay} />

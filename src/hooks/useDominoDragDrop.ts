@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { DominoLocation, DominoOrientation, DominoHalf, PlacedDomino } from '@/types';
 import { BOARD } from '@/constants';
 
@@ -39,6 +39,8 @@ export interface UseDominoDragDropOptions {
   onPlace: (placement: PlacedDomino, rotationSteps: number) => void;
   onLift: (dominoId: string) => void;
   onRestore: (dominoId: string, location: DominoLocation) => void;
+  onReturnToDeck: (dominoId: string) => void;
+  deckElementRef: React.RefObject<HTMLElement | null>;
   setDragOccurred: () => void;
   getOrientation: (dominoId: string) => DominoOrientation;
   getRotationSteps: (dominoId: string) => number;
@@ -58,6 +60,8 @@ export function useDominoDragDrop({
   onPlace,
   onLift,
   onRestore,
+  onReturnToDeck,
+  deckElementRef,
   setDragOccurred,
   getOrientation,
   getRotationSteps,
@@ -334,7 +338,22 @@ export function useDominoDragDrop({
             onRestore(start.dominoId, start.location);
           }
         } else {
-          onRestore(start.dominoId, start.location);
+          // Check if dropped over the deck area — return to deck instead of restoring
+          if (start.location.area === 'board' && deckElementRef.current) {
+            const deckRect = deckElementRef.current.getBoundingClientRect();
+            if (
+              e.clientX >= deckRect.left &&
+              e.clientX <= deckRect.right &&
+              e.clientY >= deckRect.top &&
+              e.clientY <= deckRect.bottom
+            ) {
+              onReturnToDeck(start.dominoId);
+            } else {
+              onRestore(start.dominoId, start.location);
+            }
+          } else {
+            onRestore(start.dominoId, start.location);
+          }
         }
       }
 
@@ -344,7 +363,7 @@ export function useDominoDragDrop({
       setDragState(null);
       setDropTarget(null);
     },
-    [hitTestBoardCell, isValidPlacement, onPlace, onRestore, computeAnchor]
+    [hitTestBoardCell, isValidPlacement, onPlace, onRestore, onReturnToDeck, deckElementRef, computeAnchor]
   );
 
   return {

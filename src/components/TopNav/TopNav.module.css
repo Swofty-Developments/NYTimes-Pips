@@ -60,3 +60,21 @@
 .githubLink:hover {
   background: #f0e6e0;
 }
+
+.regenerateButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: #6b5147;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.regenerateButton:hover {
+  background: #f0e6e0;
+}
