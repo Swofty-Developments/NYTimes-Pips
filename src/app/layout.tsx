@@ -9,8 +9,15 @@ const libreFranklin = Libre_Franklin({
 });
 
 export const metadata: Metadata = {
-  title: "Pips",
-  description: "Pips board game clone",
+  title: "Swofty's Pips",
+  description: "The most faithful NYTimes recreation of Pips!",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", type: "image/x-icon" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
