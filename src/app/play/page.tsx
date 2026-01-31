@@ -305,8 +305,19 @@ function PlayPageInner() {
           const padding = 4;
           const lp = liftedPlacement;
 
-          const left = padding + lp.col * (cellSize + gap) + cellSize / 2;
-          const top = padding + lp.row * (cellSize + gap) + cellSize / 2;
+          // Compute bounding box offset — the Board crops to foundation cells
+          let minR = board.length, minC = (board[0]?.length ?? 0);
+          for (let r = 0; r < board.length; r++) {
+            for (let c = 0; c < board[0].length; c++) {
+              if (board[r][c].isFoundation) {
+                if (r < minR) minR = r;
+                if (c < minC) minC = c;
+              }
+            }
+          }
+
+          const left = padding + (lp.col - minC) * (cellSize + gap) + cellSize / 2;
+          const top = padding + (lp.row - minR) * (cellSize + gap) + cellSize / 2;
 
           const offsetX = lp.orientation === 'horizontal' ? (cellSize + gap) / 2 : 0;
           const offsetY = lp.orientation === 'vertical' ? (cellSize + gap) / 2 : 0;

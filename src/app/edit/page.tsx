@@ -137,8 +137,18 @@ function EditPageInner() {
         if (boardEl) {
           const rect = boardEl.getBoundingClientRect();
           const cellW = parseFloat(BOARD.cellSize) + parseFloat(BOARD.gap);
-          const x = rect.left + col * cellW + cellW / 2;
-          const y = rect.top + row * cellW + cellW;
+          // Offset by bounding box — Board crops to foundation cells
+          let bboxMinR = board.length, bboxMinC = (board[0]?.length ?? 0);
+          for (let br = 0; br < board.length; br++) {
+            for (let bc = 0; bc < board[0].length; bc++) {
+              if (board[br][bc].isFoundation) {
+                if (br < bboxMinR) bboxMinR = br;
+                if (bc < bboxMinC) bboxMinC = bc;
+              }
+            }
+          }
+          const x = rect.left + (col - bboxMinC) * cellW + cellW / 2;
+          const y = rect.top + (row - bboxMinR) * cellW + cellW;
           setPicker({ row, col, x, y });
         }
         return;
@@ -291,8 +301,19 @@ function EditPageInner() {
           const padding = 4;
           const lp = liftedPlacement;
 
-          const left = padding + lp.col * (cellSize + gap) + cellSize / 2;
-          const top = padding + lp.row * (cellSize + gap) + cellSize / 2;
+          // Compute bounding box offset — the Board crops to foundation cells
+          let minR = board.length, minC = (board[0]?.length ?? 0);
+          for (let r = 0; r < board.length; r++) {
+            for (let c = 0; c < board[0].length; c++) {
+              if (board[r][c].isFoundation) {
+                if (r < minR) minR = r;
+                if (c < minC) minC = c;
+              }
+            }
+          }
+
+          const left = padding + (lp.col - minC) * (cellSize + gap) + cellSize / 2;
+          const top = padding + (lp.row - minR) * (cellSize + gap) + cellSize / 2;
 
           const offsetX = lp.orientation === 'horizontal' ? (cellSize + gap) / 2 : 0;
           const offsetY = lp.orientation === 'vertical' ? (cellSize + gap) / 2 : 0;
