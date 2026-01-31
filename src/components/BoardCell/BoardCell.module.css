@@ -82,3 +82,25 @@
   line-height: 1;
   user-select: none;
 }
+
+/* ── Error Dot (constraint violated) ──────────────────────── */
+.errDot {
+  position: absolute;
+  width: 25%;
+  height: 25%;
+  bottom: 5%;
+  right: -30%;
+  z-index: 25;
+  background: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Crect x='0.5' y='0.5' width='11' height='11' rx='5.5' fill='%23FF0000' stroke='white'/%3E%3C/svg%3E") no-repeat center / contain;
+  animation: errDotAppear 0.3s ease-out, errDotBounce 1s 0.3s infinite;
+}
+
+@keyframes errDotAppear {
+  0% { opacity: 0; transform: scale(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes errDotBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}

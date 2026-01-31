@@ -30,7 +30,8 @@ export default function BoardCell({
   onClick,
   onConstraintClick,
   isEditing,
-}: BoardCellProps) {
+  showError,
+}: BoardCellProps & { showError?: boolean }) {
   const theme = REGION_THEMES[regionColor];
   const borderImageSrc = encodeSvgForCss(BORDER_SVGS[regionColor]);
   const borderRadius = computeBorderRadius(removeBorders, BOARD.borderRadius);
@@ -81,6 +82,10 @@ export default function BoardCell({
         >
           <ConstraintContent constraint={constraint} />
         </span>
+      )}
+
+      {constraint && showError && (
+        <div className={styles.errDot} />
       )}
     </div>
   );

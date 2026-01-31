@@ -30,6 +30,7 @@ interface BoardProps {
   onDominoClick?: (dominoId: string, location: DominoLocation) => void;
   onDominoPointerDown?: (dominoId: string, location: DominoLocation, e: React.PointerEvent) => void;
   boardCellRef?: (row: number, col: number, el: HTMLElement | null) => void;
+  violatedRegions?: Set<string>;
 }
 
 // Build a map from "row-col" → { half, orientation, pips, domino PlacedDomino }
@@ -59,6 +60,7 @@ export default function Board({
   onDominoClick,
   onDominoPointerDown,
   boardCellRef,
+  violatedRegions,
 }: BoardProps) {
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
@@ -194,6 +196,7 @@ export default function Board({
                   onClick={() => onCellClick(r, c)}
                   onConstraintClick={(e) => onConstraintClick(r, c, e)}
                   isEditing={isEditing}
+                  showError={isDisplayCell && violatedRegions?.has(key)}
                 />
               );
             }

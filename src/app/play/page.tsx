@@ -8,13 +8,14 @@ import { DominoPiece } from '@/components/DominoPiece';
 import { TopNav } from '@/components/TopNav';
 import { ShareButton } from '@/components/ShareButton';
 import { CongratsModal } from '@/components/CongratsModal';
+import { IncorrectModal } from '@/components/IncorrectModal';
 import { BoardState, CellState, Domino, PlacedDomino } from '@/types';
 import { BOARD, WORK_GRID, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 
 import { generatePuzzle } from '@/utils/puzzleGenerator';
-import { validatePuzzle } from '@/utils/validatePuzzle';
+import { validatePuzzle, isBoardFull, getViolatedRegions } from '@/utils/validatePuzzle';
 
 function createInitialDeck(): Domino[] {
   return shuffleDominoes(generateFullSet());
@@ -28,7 +29,7 @@ export default function PlayPage() {
   );
 }
 
-type GamePhase = 'prestart' | 'playing' | 'solved' | 'reviewing';
+type GamePhase = 'prestart' | 'playing' | 'solved' | 'reviewing' | 'incorrect';
 
 function PlayPageInner() {
   const searchParams = useSearchParams();
@@ -106,14 +107,23 @@ function PlayPageInner() {
     return () => { cancelled = true; };
   }, [puzzleParam]);
 
+  // Compute violated regions for error dots
+  const violatedRegions = useMemo(
+    () => getViolatedRegions(board, placedDominoes),
+    [board, placedDominoes]
+  );
+
   // Check win condition whenever placed dominoes change
   useEffect(() => {
     if (gamePhase !== 'playing' || placedDominoes.length === 0) return;
-    if (validatePuzzle(board, placedDominoes)) {
+    if (!isBoardFull(board, placedDominoes)) return;
+    if (violatedRegions.size === 0) {
       setElapsedSeconds(Math.floor((Date.now() - (startTime ?? Date.now())) / 1000));
       setGamePhase('solved');
+    } else {
+      setGamePhase('incorrect');
     }
-  }, [placedDominoes, board, gamePhase, startTime]);
+  }, [placedDominoes, board, gamePhase, startTime, violatedRegions]);
 
   const handleStart = useCallback(() => {
     setGamePhase('playing');
@@ -161,6 +171,10 @@ function PlayPageInner() {
 
   const handleCongratsClose = useCallback(() => {
     setGamePhase('reviewing');
+  }, []);
+
+  const handleIncorrectClose = useCallback(() => {
+    setGamePhase('playing');
   }, []);
 
   const handleClearBoard = useCallback(() => {
@@ -296,6 +310,7 @@ function PlayPageInner() {
           onDominoClick={handleDominoClick}
           onDominoPointerDown={handlePointerDown}
           boardCellRef={boardCellRef}
+          violatedRegions={violatedRegions.size > 0 && isBoardFull(board, placedDominoes) ? violatedRegions : undefined}
         />
 
         {/* Floating DominoPiece for board domino that was lifted by clicking */}
@@ -419,6 +434,11 @@ function PlayPageInner() {
           onClose={handleCongratsClose}
           onNewPuzzle={handleNewPuzzle}
         />
+      )}
+
+      {/* Incorrect modal */}
+      {gamePhase === 'incorrect' && (
+        <IncorrectModal onClose={handleIncorrectClose} />
       )}
 
       {/* Drag ghost */}

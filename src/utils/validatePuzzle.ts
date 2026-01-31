@@ -1,12 +1,7 @@
-import { BoardState, PlacedDomino } from '@/types';
-import { findRegions } from './regions';
+import { BoardState, PlacedDomino, Constraint } from '@/types';
+import { findRegions, RegionInfo } from './regions';
 
-/**
- * Check whether every board cell is covered by a domino and
- * every region constraint is satisfied.
- */
-export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]): boolean {
-  // Build a map of "row-col" → pip value
+function buildPipMap(placedDominoes: PlacedDomino[]): Map<string, number> {
   const pipMap = new Map<string, number>();
   for (const p of placedDominoes) {
     pipMap.set(`${p.row}-${p.col}`, p.domino.first);
@@ -16,8 +11,12 @@ export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]
       pipMap.set(`${p.row + 1}-${p.col}`, p.domino.second);
     }
   }
+  return pipMap;
+}
 
-  // Check every foundation cell on the board is covered
+/** Check if all foundation cells are covered by dominoes. */
+export function isBoardFull(board: BoardState, placedDominoes: PlacedDomino[]): boolean {
+  const pipMap = buildPipMap(placedDominoes);
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
   for (let r = 0; r < rows; r++) {
@@ -25,52 +24,70 @@ export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]
       if (board[r][c].isFoundation && !pipMap.has(`${r}-${c}`)) return false;
     }
   }
+  return true;
+}
 
+function isConstraintViolated(constraint: Constraint, pips: number[]): boolean {
+  if (constraint.type === 'symbol') {
+    if (constraint.value === 'equal') {
+      return !pips.every((v) => v === pips[0]);
+    } else {
+      return pips.every((v) => v === pips[0]);
+    }
+  } else {
+    const text = constraint.value;
+    const sum = pips.reduce((a, b) => a + b, 0);
+    if (text.startsWith('<')) {
+      return !(sum < parseFloat(text.slice(1)));
+    } else if (text.startsWith('>')) {
+      return !(sum > parseFloat(text.slice(1)));
+    } else {
+      return sum !== parseInt(text, 10);
+    }
+  }
+}
+
+/**
+ * Returns a Set of "row-col" keys for the display cells of regions
+ * whose constraints are violated.
+ */
+export function getViolatedRegions(board: BoardState, placedDominoes: PlacedDomino[]): Set<string> {
+  const pipMap = buildPipMap(placedDominoes);
   const regionMap = findRegions(board);
-
-  // Deduplicate regions (multiple cells point to same RegionInfo object)
-  const seen = new Set<object>();
+  const violated = new Set<string>();
+  const seen = new Set<RegionInfo>();
 
   for (const [, info] of regionMap) {
     if (seen.has(info)) continue;
     seen.add(info);
 
-    // Collect pip values for every cell in the region
+    const constraint = info.constraint;
+    if (!constraint) continue;
+
     const pips: number[] = [];
+    let allCovered = true;
     for (const [r, c] of info.cells) {
       const val = pipMap.get(`${r}-${c}`);
-      if (val === undefined) return false; // cell not covered
+      if (val === undefined) { allCovered = false; break; }
       pips.push(val);
     }
 
-    const constraint = info.constraint;
-    if (!constraint) continue; // no constraint → always OK
+    if (!allCovered) continue; // can't evaluate incomplete regions
 
-    if (constraint.type === 'symbol') {
-      if (constraint.value === 'equal') {
-        if (!pips.every((v) => v === pips[0])) return false;
-      } else {
-        // notEqual — not all the same
-        if (pips.every((v) => v === pips[0])) return false;
-      }
-    } else {
-      // Text constraint — all comparisons are on the sum of pips
-      const text = constraint.value;
-      const sum = pips.reduce((a, b) => a + b, 0);
-
-      if (text.startsWith('<')) {
-        const threshold = parseFloat(text.slice(1));
-        if (!(sum < threshold)) return false;
-      } else if (text.startsWith('>')) {
-        const threshold = parseFloat(text.slice(1));
-        if (!(sum > threshold)) return false;
-      } else {
-        // Exact sum
-        const target = parseInt(text, 10);
-        if (sum !== target) return false;
-      }
+    if (isConstraintViolated(constraint, pips)) {
+      const [dr, dc] = info.displayCell;
+      violated.add(`${dr}-${dc}`);
     }
   }
 
-  return true;
+  return violated;
+}
+
+/**
+ * Check whether every board cell is covered by a domino and
+ * every region constraint is satisfied.
+ */
+export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]): boolean {
+  if (!isBoardFull(board, placedDominoes)) return false;
+  return getViolatedRegions(board, placedDominoes).size === 0;
 }
