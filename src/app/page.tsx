@@ -50,8 +50,8 @@ export default function Home() {
         <div
           className={styles.grid}
           style={{
-            gridTemplateColumns: `repeat(${DECO_COLS}, ${BOARD.cellSize})`,
-            gridTemplateRows: `repeat(${DECO_ROWS}, ${BOARD.cellSize})`,
+            gridTemplateColumns: `repeat(${DECO_COLS}, 1fr)`,
+            gridTemplateRows: `repeat(${DECO_ROWS}, 1fr)`,
           }}
         >
           {decoBoard.map((row, r) =>

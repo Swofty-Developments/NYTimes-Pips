@@ -10,6 +10,7 @@ import { ShareButton } from '@/components/ShareButton';
 import { BoardState, CellState, Domino, PlacedDomino } from '@/types';
 import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
+import { useContentScale } from '@/hooks/useContentScale';
 import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
 import { generateRandomPuzzle } from '@/utils/puzzleGenerator';
 
@@ -101,6 +102,8 @@ function PlayPageInner() {
 
   const isLiftedSelected = liftedPlacement && selection && selection.dominoId === liftedPlacement.domino.id && !dragState;
 
+  const { containerRef, innerRef, scale } = useContentScale();
+
   const getShareUrl = useCallback(() => {
     const encoded = encodePuzzle(board, placedDominoes);
     const url = new URL(window.location.href);
@@ -112,14 +115,19 @@ function PlayPageInner() {
   if (!ready) return null;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh' }}>
     <TopNav
       activeTab="play"
       shareButton={<ShareButton getShareUrl={getShareUrl} />}
     />
     <div
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 32 }}
+      ref={containerRef}
+      style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
       onPointerDown={clearSelection}
+    >
+    <div
+      ref={innerRef}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 32, transformOrigin: 'center center' }}
     >
 
       <div data-board onPointerDown={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
@@ -212,6 +220,9 @@ function PlayPageInner() {
         onDominoPointerDown={handlePointerDown}
       />
 
+    </div>
+    </div>
+
       {/* Drag ghost */}
       {dragState && dragDomino && (() => {
         const steps = ((dragState.rotationSteps % 4) + 4) % 4;
@@ -234,7 +245,7 @@ function PlayPageInner() {
               position: 'fixed',
               left: dragState.currentPos.x,
               top: dragState.currentPos.y,
-              transform: `translate(${tx}, ${ty})`,
+              transform: `translate(${tx}, ${ty}) scale(${scale * 1.1})`,
               pointerEvents: 'none',
               zIndex: 100,
               opacity: 0.85,
@@ -249,7 +260,6 @@ function PlayPageInner() {
           </div>
         );
       })()}
-    </div>
     </div>
   );
 }

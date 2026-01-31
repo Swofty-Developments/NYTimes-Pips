@@ -9,23 +9,25 @@
 
 /* ── Decorative background board ─────────────────────────────── */
 .backgroundBoard {
-  position: absolute;
-  top: 60px;
-  left: 50%;
-  transform: translateX(-50%);
+  position: fixed;
+  inset: 0;
   opacity: 0.45;
   pointer-events: none;
   z-index: 0;
   overflow: hidden;
-  width: 100vw;
-  display: flex;
-  justify-content: center;
 }
 
 .grid {
   display: grid;
+  width: 100%;
+  height: 100%;
   gap: 4px;
   padding: 4px;
+}
+
+.grid > * {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .fadeOverlay {

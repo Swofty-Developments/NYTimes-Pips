@@ -5,6 +5,8 @@
   padding: 10px 16px;
   background: #f5f0ed;
   width: 100%;
+  position: relative;
+  z-index: 2;
 }
 
 .tabs {
