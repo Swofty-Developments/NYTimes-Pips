@@ -10,13 +10,24 @@ const libreFranklin = Libre_Franklin({
 
 export const metadata: Metadata = {
   title: "Swofty's Pips",
-  description: "The most faithful NYTimes recreation of Pips!",
+  description: "The only 100% visually faithful recreation of the Pips game by The New York Times!",
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", type: "image/x-icon" },
     ],
     apple: "/apple-touch-icon.png",
+  },
+  openGraph: {
+    title: "Swofty's Pips",
+    description: "The only 100% visually faithful recreation of the Pips game by The New York Times!",
+    images: [{ url: "/og-image.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Swofty's Pips",
+    description: "The only 100% visually faithful recreation of the Pips game by The New York Times!",
+    images: ["/og-image.png"],
   },
 };
 
