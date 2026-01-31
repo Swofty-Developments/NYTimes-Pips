@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { Suspense, useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Board } from '@/components/Board';
 import { EditToolbar } from '@/components/EditToolbar';
@@ -15,6 +15,7 @@ import { findRegions } from '@/utils/regions';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
+import { validatePuzzle } from '@/utils/validatePuzzle';
 
 function createEmptyBoard(): BoardState {
   return Array.from({ length: BOARD.rows }, () =>
@@ -56,6 +57,7 @@ function EditPageInner() {
   // Domino state
   const [deckDominoes, setDeckDominoes] = useState<Domino[]>(createInitialDeck);
   const [placedDominoes, setPlacedDominoes] = useState<PlacedDomino[]>([]);
+  const deckRef = useRef<HTMLDivElement>(null);
 
   // Load puzzle from URL param
   useEffect(() => {
@@ -93,6 +95,7 @@ function EditPageInner() {
     allDominoes: deckDominoes,
     placedDominoes,
     onPlacedDominoesChange: setPlacedDominoes,
+    deckElementRef: deckRef,
   });
 
   const handleShuffle = useCallback(() => {
@@ -191,6 +194,11 @@ function EditPageInner() {
 
   const { containerRef, innerRef, scale } = useContentScale();
 
+  const puzzleValid = useMemo(
+    () => validatePuzzle(board, placedDominoes),
+    [board, placedDominoes]
+  );
+
   const getShareUrl = useCallback(() => {
     const encoded = encodePuzzle(board, placedDominoes);
     const url = new URL(window.location.href);
@@ -203,7 +211,7 @@ function EditPageInner() {
     <div style={{ display: 'flex', flexDirection: 'column', width: '100%', minHeight: '100vh' }}>
     <TopNav
       activeTab="edit"
-      shareButton={<ShareButton getShareUrl={getShareUrl} />}
+      shareButton={<ShareButton getShareUrl={getShareUrl} disabled={!puzzleValid} />}
     />
     <div
       ref={containerRef}
@@ -311,6 +319,7 @@ function EditPageInner() {
 
       {!isEditing && (
         <DominoDeck
+          ref={deckRef}
           dominoes={deckDominoes}
           placedIds={deckExcludeIds}
           onShuffle={handleShuffle}

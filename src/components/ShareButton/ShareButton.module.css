@@ -16,8 +16,40 @@
   background: #f0e6e0;
 }
 
+.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.disabled:hover {
+  background: white;
+}
+
 .copied {
   background: white;
   color: #6b5147;
   border-color: #6b5147;
+}
+
+.toast {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgb(18, 18, 18);
+  color: white;
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  white-space: nowrap;
+  z-index: 300;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.toastVisible {
+  opacity: 1;
 }
