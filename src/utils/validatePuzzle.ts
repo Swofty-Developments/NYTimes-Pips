@@ -17,12 +17,12 @@ export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]
     }
   }
 
-  // Check every cell on the board is covered
+  // Check every foundation cell on the board is covered
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (!pipMap.has(`${r}-${c}`)) return false;
+      if (board[r][c].isFoundation && !pipMap.has(`${r}-${c}`)) return false;
     }
   }
 

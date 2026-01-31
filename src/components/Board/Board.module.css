@@ -1,13 +1,44 @@
 .board {
   display: grid;
   padding: 4px;
-  background: #dbc2b9;
   border-radius: 12px;
+}
+
+/* When all cells are foundation (legacy rectangular boards), use solid bg */
+.board.solidBg {
+  background: #dbc2b9;
+}
+
+/* When there are void cells, board bg is transparent — foundation cells carry their own */
+.board.dynamicBg {
+  background: transparent;
 }
 
 /* ── Cell Wrapper (for drop zone + domino overlay) ─────────── */
 .cellWrapper {
   position: relative;
+}
+
+/* Foundation cell background — extends into the gap to form the board shape */
+.cellWrapper.foundationCell::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  background: #dbc2b9;
+  /* Extend by gap/2 on sides with a foundation neighbor, by padding on outer edges */
+  top: var(--fb-top);
+  right: var(--fb-right);
+  bottom: var(--fb-bottom);
+  left: var(--fb-left);
+  border-radius: var(--fb-radius);
+}
+
+.cellWrapper.voidWrapper {
+  pointer-events: none;
+}
+
+.cellWrapper.voidWrapper.foundationActive {
+  pointer-events: auto;
 }
 
 .cellWrapper.dropTarget {

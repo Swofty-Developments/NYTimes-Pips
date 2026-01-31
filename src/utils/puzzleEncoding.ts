@@ -36,16 +36,17 @@ function deserializeConstraint(s: string): Constraint {
 }
 
 export function encodePuzzle(board: BoardState, placedDominoes: PlacedDomino[] = []): string {
-  const compact: PuzzleData = { board, placedDominoes };
+  const rows = board.length;
+  const cols = board[0]?.length ?? 0;
 
-  // Compact board: array of [colorIndex, constraintString | null] per cell
+  // Compact board: array of [colorIndex, constraintString | null, isFoundation] per cell
   const cells: (number | string | null)[][] = [];
-  for (let r = 0; r < BOARD.rows; r++) {
-    for (let c = 0; c < BOARD.cols; c++) {
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
       const cell = board[r][c];
       const colorIdx = cell.regionColor ? COLOR_MAP[cell.regionColor] : 0;
       const constraint = serializeConstraint(cell.constraint);
-      cells.push([colorIdx, constraint]);
+      cells.push([colorIdx, constraint, cell.isFoundation ? 1 : 0]);
     }
   }
 
@@ -59,7 +60,7 @@ export function encodePuzzle(board: BoardState, placedDominoes: PlacedDomino[] =
     p.col,
   ]);
 
-  const json = JSON.stringify({ c: cells, d: dominoes });
+  const json = JSON.stringify({ r: rows, k: cols, c: cells, d: dominoes });
   return btoa(json);
 }
 
@@ -67,15 +68,23 @@ export function decodePuzzle(encoded: string): PuzzleData {
   const json = atob(encoded);
   const data = JSON.parse(json);
 
+  // Backward compat: old puzzles without grid dimensions default to BOARD size
+  const rows: number = data.r ?? BOARD.rows;
+  const cols: number = data.k ?? BOARD.cols;
+
   const board: BoardState = [];
   let idx = 0;
-  for (let r = 0; r < BOARD.rows; r++) {
+  for (let r = 0; r < rows; r++) {
     const row: CellState[] = [];
-    for (let c = 0; c < BOARD.cols; c++) {
-      const [colorIdx, constraintStr] = data.c[idx++];
+    for (let c = 0; c < cols; c++) {
+      const entry = data.c[idx++];
+      const [colorIdx, constraintStr] = entry;
+      // Backward compat: old puzzles without foundation flag default to true
+      const isFoundation = entry.length > 2 ? entry[2] === 1 : true;
       row.push({
         regionColor: colorIdx === 0 ? null : COLOR_REVERSE[colorIdx],
         constraint: constraintStr ? deserializeConstraint(constraintStr) : null,
+        isFoundation,
       });
     }
     board.push(row);

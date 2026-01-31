@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Domino, DominoHalf, DominoLocation, DominoOrientation, PlacedDomino } from '@/types';
+import { BoardState, Domino, DominoHalf, DominoLocation, DominoOrientation, PlacedDomino } from '@/types';
 import { useSelectionInteraction, SelectionState } from './useSelectionInteraction';
 import { useDominoDragDrop, DragState, DropTarget } from './useDominoDragDrop';
 
 interface UseDominoInteractionOptions {
+  board: BoardState;
   allDominoes: Domino[];
   placedDominoes: PlacedDomino[];
   onPlacedDominoesChange: (updater: (prev: PlacedDomino[]) => PlacedDomino[]) => void;
@@ -29,6 +30,7 @@ interface UseDominoInteractionReturn {
 }
 
 export function useDominoInteraction({
+  board,
   allDominoes,
   placedDominoes,
   onPlacedDominoesChange,
@@ -243,6 +245,7 @@ export function useDominoInteraction({
   );
 
   const dragDrop = useDominoDragDrop({
+    board,
     placedDominoes,
     onPlace: onDragPlace,
     onLift: onDragLift,

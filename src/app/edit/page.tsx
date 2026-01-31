@@ -10,7 +10,7 @@ import { DominoPiece } from '@/components/DominoPiece';
 import { TopNav } from '@/components/TopNav';
 import { ShareButton } from '@/components/ShareButton';
 import { BoardState, CellState, RegionColor, EditorTool, Constraint, Domino, PlacedDomino } from '@/types';
-import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
+import { BOARD, WORK_GRID, generateFullSet, shuffleDominoes } from '@/constants';
 import { findRegions } from '@/utils/regions';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
@@ -18,10 +18,11 @@ import { decodePuzzle } from '@/utils/puzzleEncoding';
 import { validatePuzzle } from '@/utils/validatePuzzle';
 
 function createEmptyBoard(): BoardState {
-  return Array.from({ length: BOARD.rows }, () =>
-    Array.from({ length: BOARD.cols }, (): CellState => ({
+  return Array.from({ length: WORK_GRID.rows }, () =>
+    Array.from({ length: WORK_GRID.cols }, (): CellState => ({
       regionColor: null,
       constraint: null,
+      isFoundation: false,
     }))
   );
 }
@@ -44,7 +45,7 @@ function EditPageInner() {
 
   const [board, setBoard] = useState<BoardState>(createEmptyBoard);
   const [isEditing, setIsEditing] = useState(false);
-  const [activeTool, setActiveTool] = useState<EditorTool>('paint');
+  const [activeTool, setActiveTool] = useState<EditorTool>('foundation');
   const [selectedColor, setSelectedColor] = useState<RegionColor>('orange');
   const [picker, setPicker] = useState<{
     row: number;
@@ -92,6 +93,7 @@ function EditPageInner() {
     dragSourceId,
     liftedPlacement,
   } = useDominoInteraction({
+    board,
     allDominoes: deckDominoes,
     placedDominoes,
     onPlacedDominoesChange: setPlacedDominoes,
@@ -109,8 +111,26 @@ function EditPageInner() {
     (row: number, col: number) => {
       if (!isEditing) return;
 
+      if (activeTool === 'foundation') {
+        setBoard((prev) => {
+          const next = prev.map((r) => r.map((c) => ({ ...c })));
+          const cell = next[row][col];
+          if (cell.isFoundation) {
+            cell.isFoundation = false;
+            cell.regionColor = null;
+            cell.constraint = null;
+          } else {
+            cell.isFoundation = true;
+          }
+          return next;
+        });
+        return;
+      }
+
+      const cell = board[row][col];
+      if (!cell.isFoundation) return;
+
       if (activeTool === 'constraint') {
-        const cell = board[row][col];
         if (!cell.regionColor) return;
 
         const boardEl = document.querySelector('[data-board]');
@@ -143,6 +163,7 @@ function EditPageInner() {
   const handleConstraintClick = useCallback(
     (row: number, col: number, e: React.MouseEvent) => {
       if (!isEditing) return;
+      if (!board[row][col].isFoundation) return;
       if (!board[row][col].regionColor) return;
 
       e.stopPropagation();
@@ -251,6 +272,7 @@ function EditPageInner() {
         <Board
           board={board}
           isEditing={isEditing}
+          isFoundationMode={isEditing && activeTool === 'foundation'}
           onCellClick={handleCellClick}
           onConstraintClick={handleConstraintClick}
           placedDominoes={placedDominoes}

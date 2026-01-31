@@ -4,7 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import Link from 'next/link';
 import TopNav from '@/components/TopNav/TopNav';
 import { Board } from '@/components/Board';
-import { BOARD } from '@/constants';
+import { BOARD, WORK_GRID } from '@/constants';
 import { generateRandomPuzzle } from '@/utils/puzzleGenerator';
 import styles from './page.module.css';
 
@@ -12,8 +12,8 @@ import styles from './page.module.css';
 function getBoardCounts() {
   const cellSize = parseFloat(BOARD.cellSize);
   const gap = parseFloat(BOARD.gap);
-  const boardW = BOARD.cols * cellSize + (BOARD.cols - 1) * gap + 8;
-  const boardH = BOARD.rows * cellSize + (BOARD.rows - 1) * gap + 8;
+  const boardW = WORK_GRID.cols * cellSize + (WORK_GRID.cols - 1) * gap + 8;
+  const boardH = WORK_GRID.rows * cellSize + (WORK_GRID.rows - 1) * gap + 8;
 
   // Use large defaults for SSR, will recalc on client
   const vw = typeof window !== 'undefined' ? window.innerWidth : 1920;

@@ -1,0 +1,18 @@
+.voidCell {
+  width: var(--cell-size);
+  height: var(--cell-size);
+  border-radius: var(--board-border-radius);
+  pointer-events: none;
+  background: transparent;
+}
+
+.voidCell.foundationMode {
+  pointer-events: auto;
+  cursor: pointer;
+  border: 2px dashed rgba(0, 0, 0, 0.15);
+  box-sizing: border-box;
+}
+
+.voidCell.foundationMode:hover {
+  background: rgba(0, 0, 0, 0.06);
+}

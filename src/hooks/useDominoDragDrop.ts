@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { DominoLocation, DominoOrientation, DominoHalf, PlacedDomino } from '@/types';
+import { BoardState, DominoLocation, DominoOrientation, DominoHalf, PlacedDomino } from '@/types';
 import { BOARD } from '@/constants';
 
 export interface DropTarget {
@@ -35,6 +35,7 @@ interface PointerStart {
 const DRAG_THRESHOLD = 5;
 
 export interface UseDominoDragDropOptions {
+  board: BoardState;
   placedDominoes: PlacedDomino[];
   onPlace: (placement: PlacedDomino, rotationSteps: number) => void;
   onLift: (dominoId: string) => void;
@@ -56,6 +57,7 @@ export interface UseDominoDragDropReturn {
 }
 
 export function useDominoDragDrop({
+  board,
   placedDominoes,
   onPlace,
   onLift,
@@ -95,21 +97,25 @@ export function useDominoDragDrop({
   const isValidPlacement = useCallback(
     (row: number, col: number, orientation: DominoOrientation): boolean => {
       const occupied = getOccupiedCells();
-      const { rows, cols } = BOARD;
+      const rows = board.length;
+      const cols = board[0]?.length ?? 0;
 
       if (row < 0 || row >= rows || col < 0 || col >= cols) return false;
       if (occupied.has(`${row}-${col}`)) return false;
+      if (!board[row][col].isFoundation) return false;
 
       if (orientation === 'horizontal') {
         if (col + 1 >= cols) return false;
         if (occupied.has(`${row}-${col + 1}`)) return false;
+        if (!board[row][col + 1].isFoundation) return false;
       } else {
         if (row + 1 >= rows) return false;
         if (occupied.has(`${row + 1}-${col}`)) return false;
+        if (!board[row + 1][col].isFoundation) return false;
       }
       return true;
     },
-    [getOccupiedCells]
+    [getOccupiedCells, board]
   );
 
   const hitTestBoardCell = useCallback(

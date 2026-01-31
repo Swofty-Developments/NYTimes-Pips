@@ -39,6 +39,13 @@ export default function EditToolbar({
             <span className={styles.toolGroupLabel}>Tool</span>
             <div className={styles.toolButtons}>
               <button
+                className={`${styles.toolBtn} ${activeTool === 'foundation' ? styles.active : ''}`}
+                onClick={() => onToolChange('foundation')}
+                title="Toggle foundation cells"
+              >
+                Foundation
+              </button>
+              <button
                 className={`${styles.toolBtn} ${activeTool === 'paint' ? styles.active : ''}`}
                 onClick={() => onToolChange('paint')}
                 title="Paint region color"

@@ -34,6 +34,7 @@ export interface BoardCellProps {
 export interface CellState {
   regionColor: RegionColor | null;
   constraint: Constraint | null;
+  isFoundation: boolean;
 }
 
 export type BoardState = CellState[][];
@@ -47,7 +48,7 @@ export interface BorderFlags {
 }
 
 // ── Editor Tool ────────────────────────────────────────────────
-export type EditorTool = 'paint' | 'constraint' | 'erase';
+export type EditorTool = 'foundation' | 'paint' | 'constraint' | 'erase';
 
 // ── Domino Types ──────────────────────────────────────────────
 export type DominoOrientation = 'horizontal' | 'vertical';

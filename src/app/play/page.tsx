@@ -9,7 +9,7 @@ import { TopNav } from '@/components/TopNav';
 import { ShareButton } from '@/components/ShareButton';
 import { CongratsModal } from '@/components/CongratsModal';
 import { BoardState, CellState, Domino, PlacedDomino } from '@/types';
-import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
+import { BOARD, WORK_GRID, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 
@@ -36,10 +36,11 @@ function PlayPageInner() {
 
 
   const [board, setBoard] = useState<BoardState>(() =>
-    Array.from({ length: BOARD.rows }, () =>
-      Array.from({ length: BOARD.cols }, (): CellState => ({
+    Array.from({ length: WORK_GRID.rows }, () =>
+      Array.from({ length: WORK_GRID.cols }, (): CellState => ({
         regionColor: null,
         constraint: null,
+        isFoundation: false,
       }))
     )
   );
@@ -138,6 +139,7 @@ function PlayPageInner() {
     dragSourceId,
     liftedPlacement,
   } = useDominoInteraction({
+    board,
     allDominoes: deckDominoes,
     placedDominoes,
     onPlacedDominoesChange: setPlacedDominoes,

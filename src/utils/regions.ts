@@ -15,8 +15,9 @@ function floodFill(
   startCol: number,
   visited: boolean[][],
 ): [number, number][] {
-  const color = board[startRow][startCol].regionColor;
-  if (!color) return [];
+  const cell = board[startRow][startCol];
+  if (!cell.isFoundation || !cell.regionColor) return [];
+  const color = cell.regionColor;
 
   const cells: [number, number][] = [];
   const stack: [number, number][] = [[startRow, startCol]];
@@ -27,6 +28,7 @@ function floodFill(
     const [r, c] = stack.pop()!;
     if (r < 0 || r >= rows || c < 0 || c >= cols) continue;
     if (visited[r][c]) continue;
+    if (!board[r][c].isFoundation) continue;
     if (board[r][c].regionColor !== color) continue;
 
     visited[r][c] = true;
@@ -62,7 +64,7 @@ export function findRegions(board: BoardState): Map<string, RegionInfo> {
 
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (visited[r][c] || !board[r][c].regionColor) continue;
+      if (visited[r][c] || !board[r][c].isFoundation || !board[r][c].regionColor) continue;
 
       const cells = floodFill(board, r, c, visited);
       const displayCell = findDisplayCell(cells);
