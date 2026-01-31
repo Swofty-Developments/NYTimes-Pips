@@ -1601,13 +1601,14 @@ function resolveHintedRegions(
 /**
  * Assign dominoes while respecting hint constraints. Regions are grown BEFORE this
  * runs, so the backtracker can check constraints incrementally as it places pieces.
+ * Returns { dominoes, hintsEnforced } — hintsEnforced is false if it fell back to unconstrained.
  */
 function assignDominoesHintAware(
   slots: TilingSlot[],
   cellToRegion: Map<number, number>,
   keyToIdx: Map<string, number>,
   hintedRegions: Map<number, Constraint>,
-): Domino[] {
+): { dominoes: Domino[]; hintsEnforced: boolean } {
   const allPieces: [number, number][] = [];
   for (let i = 0; i <= 6; i++) {
     for (let j = i; j <= 6; j++) {
@@ -1719,7 +1720,7 @@ function assignDominoesHintAware(
       .map(([rid, c]) => `region ${rid}: "${c.type === 'symbol' ? c.value : c.value}"`)
       .join(', ');
     console.warn(`[puzzleGen] Hint-aware assignment failed (${hintSummary}), falling back to unconstrained`);
-    return assignDominoes(slots);
+    return { dominoes: assignDominoes(slots), hintsEnforced: false };
   }
 
   // Log which hints were successfully enforced
@@ -1729,7 +1730,7 @@ function assignDominoesHintAware(
     console.log(`[puzzleGen] Hint enforced: region ${rid} (${cells?.length ?? '?'} cells), constraint "${label}"`);
   }
 
-  return result;
+  return { dominoes: result, hintsEnforced: true };
 }
 
 // ── Main Generator ───────────────────────────────────────────────
@@ -1751,12 +1752,19 @@ export function generatePuzzle(): GeneratedPuzzle {
     const hintedRegions = resolveHintedRegions(cellToRegion, keyToIdx);
 
     // Stage 3: Assign dominoes (hint-aware if there are hints)
-    const dominoes = hintedRegions.size > 0
-      ? assignDominoesHintAware(slots, cellToRegion, keyToIdx, hintedRegions)
-      : assignDominoes(slots);
+    let dominoes: Domino[];
+    let hintsEnforced = false;
+    if (hintedRegions.size > 0) {
+      const hintResult = assignDominoesHintAware(slots, cellToRegion, keyToIdx, hintedRegions);
+      dominoes = hintResult.dominoes;
+      hintsEnforced = hintResult.hintsEnforced;
+    } else {
+      dominoes = assignDominoes(slots);
+    }
 
-    // Post-process: nudge equal regions (skip hinted regions — they're already forced)
-    nudgeEqualRegions(slots, dominoes, cellToRegion, keyToIdx, new Set(hintedRegions.keys()));
+    // Post-process: nudge equal regions (skip hinted regions only if hints were enforced)
+    nudgeEqualRegions(slots, dominoes, cellToRegion, keyToIdx,
+      hintsEnforced ? new Set(hintedRegions.keys()) : undefined);
 
     // Graph color
     const regionColors = colorRegions(cellToRegion, foundation, keyToIdx);
@@ -1764,9 +1772,11 @@ export function generatePuzzle(): GeneratedPuzzle {
     // Stage 4: Derive constraints from actual pip values
     const regionConstraints = deriveConstraints(slots, dominoes, cellToRegion, keyToIdx);
 
-    // Override derived constraints with hint labels (pips already satisfy them)
-    for (const [rid, constraint] of hintedRegions) {
-      regionConstraints.set(rid, constraint);
+    // Only override with hint labels if hints were actually enforced in pip assignment
+    if (hintsEnforced) {
+      for (const [rid, constraint] of hintedRegions) {
+        regionConstraints.set(rid, constraint);
+      }
     }
 
     // Build the board on the full work grid
