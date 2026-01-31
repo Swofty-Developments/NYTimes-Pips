@@ -4,7 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import styles from './ShareButton.module.css';
 
 interface ShareButtonProps {
-  getShareUrl: () => string;
+  getShareUrl: () => Promise<string>;
   disabled?: boolean;
   disabledMessage?: string;
 }
@@ -14,16 +14,15 @@ export default function ShareButton({ getShareUrl, disabled, disabledMessage }: 
   const [toast, setToast] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
 
-  const handleClick = useCallback(() => {
+  const handleClick = useCallback(async () => {
     if (disabled) {
       setToast(true);
       return;
     }
-    const url = getShareUrl();
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
+    const url = await getShareUrl();
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }, [getShareUrl, disabled]);
 
   // Manage toast fade-in / fade-out lifecycle

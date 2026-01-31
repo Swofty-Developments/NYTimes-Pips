@@ -78,3 +78,25 @@
 .regenerateButton:hover {
   background: #f0e6e0;
 }
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 16px;
+  border: none;
+  background: transparent;
+  color: #6b5147;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.clearButton:hover {
+  background: #f0e6e0;
+}

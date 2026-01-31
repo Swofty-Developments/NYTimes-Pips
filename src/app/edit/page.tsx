@@ -14,7 +14,7 @@ import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
 import { findRegions } from '@/utils/regions';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
-import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
+import { decodePuzzle } from '@/utils/puzzleEncoding';
 import { validatePuzzle } from '@/utils/validatePuzzle';
 
 function createEmptyBoard(): BoardState {
@@ -199,11 +199,16 @@ function EditPageInner() {
     [board, placedDominoes]
   );
 
-  const getShareUrl = useCallback(() => {
-    const encoded = encodePuzzle(board, placedDominoes);
+  const getShareUrl = useCallback(async () => {
+    const res = await fetch('/api/puzzles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ board, placedDominoes }),
+    });
+    const { code } = await res.json();
     const url = new URL(window.location.href);
     url.pathname = '/play';
-    url.searchParams.set('puzzle', encoded);
+    url.searchParams.set('puzzle', code);
     return url.toString();
   }, [board, placedDominoes]);
 

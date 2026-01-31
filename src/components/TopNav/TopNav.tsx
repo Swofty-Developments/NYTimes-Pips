@@ -8,9 +8,10 @@ interface TopNavProps {
   activeTab?: 'home' | 'edit' | 'play';
   shareButton?: React.ReactNode;
   onRegenerate?: () => void;
+  onClearBoard?: () => void;
 }
 
-export default function TopNav({ activeTab, shareButton, onRegenerate }: TopNavProps) {
+export default function TopNav({ activeTab, shareButton, onRegenerate, onClearBoard }: TopNavProps) {
   return (
     <nav className={styles.nav}>
       <div className={styles.tabs}>
@@ -44,6 +45,15 @@ export default function TopNav({ activeTab, shareButton, onRegenerate }: TopNavP
                 fill="currentColor"
               />
             </svg>
+          </button>
+        )}
+        {onClearBoard && (
+          <button
+            className={styles.clearButton}
+            onClick={onClearBoard}
+            title="Clear board"
+          >
+            Clear Board
           </button>
         )}
       </div>

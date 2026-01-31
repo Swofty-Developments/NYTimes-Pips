@@ -12,7 +12,7 @@ import { BoardState, CellState, Domino, PlacedDomino } from '@/types';
 import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
-import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
+
 import { generatePuzzle } from '@/utils/puzzleGenerator';
 import { validatePuzzle } from '@/utils/validatePuzzle';
 
@@ -34,8 +34,6 @@ function PlayPageInner() {
   const searchParams = useSearchParams();
   const puzzleParam = searchParams.get('puzzle');
 
-  // For URL-decoded puzzles, we use the full deck; for generated puzzles, we use the curated 12-piece deck
-  const [isUrlPuzzle, setIsUrlPuzzle] = useState(false);
 
   const [board, setBoard] = useState<BoardState>(() =>
     Array.from({ length: BOARD.rows }, () =>
@@ -68,34 +66,43 @@ function PlayPageInner() {
 
   // Load puzzle from URL param or generate
   useEffect(() => {
-    if (puzzleParam) {
-      try {
-        const data = decodePuzzle(puzzleParam);
-        setBoard(data.board);
-        const solutionDominoes = data.placedDominoes.map((p) => p.domino);
-        setDeckDominoes(solutionDominoes);
-        setSolutionPlacements(data.placedDominoes);
-        setPlacedDominoes([]);
-        setIsUrlPuzzle(true);
-      } catch {
+    let cancelled = false;
+
+    async function loadPuzzle() {
+      if (puzzleParam) {
+        try {
+          const res = await fetch(`/api/puzzles?code=${encodeURIComponent(puzzleParam)}`);
+          if (!res.ok) throw new Error('Not found');
+          const data = await res.json();
+          if (cancelled) return;
+          setBoard(data.board);
+          const solutionDominoes = data.placedDominoes.map((p: { domino: { id: string; first: number; second: number } }) => p.domino);
+          setDeckDominoes(solutionDominoes);
+          setSolutionPlacements(data.placedDominoes);
+          setPlacedDominoes([]);
+        } catch {
+          if (cancelled) return;
+          const puzzle = generatePuzzle();
+          setBoard(puzzle.board);
+          setDeckDominoes(puzzle.solutionDominoes);
+          setSolutionPlacements(puzzle.solutionPlacements);
+        }
+      } else {
         const puzzle = generatePuzzle();
         setBoard(puzzle.board);
         setDeckDominoes(puzzle.solutionDominoes);
         setSolutionPlacements(puzzle.solutionPlacements);
-        setIsUrlPuzzle(false);
       }
-    } else {
-      const puzzle = generatePuzzle();
-      setBoard(puzzle.board);
-      setDeckDominoes(puzzle.solutionDominoes);
-      setSolutionPlacements(puzzle.solutionPlacements);
-      setIsUrlPuzzle(false);
+      if (cancelled) return;
+      setReady(true);
+      setGamePhase('prestart');
+      setStartTime(null);
+      setElapsedSeconds(0);
+      setPlacedDominoes([]);
     }
-    setReady(true);
-    setGamePhase('prestart');
-    setStartTime(null);
-    setElapsedSeconds(0);
-    setPlacedDominoes([]);
+
+    loadPuzzle();
+    return () => { cancelled = true; };
   }, [puzzleParam]);
 
   // Check win condition whenever placed dominoes change
@@ -137,10 +144,6 @@ function PlayPageInner() {
     deckElementRef: deckRef,
   });
 
-  const handleShuffle = useCallback(() => {
-    clearSelection();
-    setDeckDominoes(shuffleDominoes(generateFullSet()));
-  }, [clearSelection]);
 
   const handleRegenerate = useCallback(() => {
     const puzzle = generatePuzzle();
@@ -149,7 +152,6 @@ function PlayPageInner() {
     setSolutionPlacements(puzzle.solutionPlacements);
     setPlacedDominoes([]);
     clearSelection();
-    setIsUrlPuzzle(false);
     setGamePhase('prestart');
     setStartTime(null);
     setElapsedSeconds(0);
@@ -158,6 +160,11 @@ function PlayPageInner() {
   const handleCongratsClose = useCallback(() => {
     setGamePhase('reviewing');
   }, []);
+
+  const handleClearBoard = useCallback(() => {
+    setPlacedDominoes([]);
+    clearSelection();
+  }, [clearSelection]);
 
   const handleNewPuzzle = useCallback(() => {
     handleRegenerate();
@@ -194,13 +201,18 @@ function PlayPageInner() {
 
   const { containerRef, innerRef, scale } = useContentScale();
 
-  const getShareUrl = useCallback(() => {
-    const encoded = encodePuzzle(board, placedDominoes);
+  const getShareUrl = useCallback(async () => {
+    const res = await fetch('/api/puzzles', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ board, placedDominoes: solutionPlacements }),
+    });
+    const { code } = await res.json();
     const url = new URL(window.location.href);
     url.pathname = '/play';
-    url.searchParams.set('puzzle', encoded);
+    url.searchParams.set('puzzle', code);
     return url.toString();
-  }, [board, placedDominoes]);
+  }, [board, solutionPlacements]);
 
   if (!ready) return null;
 
@@ -210,6 +222,7 @@ function PlayPageInner() {
       activeTab="play"
       shareButton={<ShareButton getShareUrl={getShareUrl} />}
       onRegenerate={handleRegenerate}
+      onClearBoard={handleClearBoard}
     />
     <div
       ref={containerRef}
@@ -352,8 +365,7 @@ function PlayPageInner() {
         getRotationSteps={getRotationSteps}
         onDominoClick={handleDominoClick}
         onDominoPointerDown={handlePointerDown}
-        showShuffle={isUrlPuzzle}
-        onShuffle={isUrlPuzzle ? handleShuffle : undefined}
+        showShuffle={false}
       />
 
     </div>

@@ -168,48 +168,34 @@ function cellIndex(r: number, c: number): number {
   return r * COLS + c;
 }
 
-function growRegions(slots: TilingSlot[]): Map<number, number> {
+function growRegions(): Map<number, number> {
+  // Each cell starts as its own region — domino halves can be in different regions
   const uf = new UnionFind(ROWS * COLS);
 
-  // Pre-union domino pairs
-  for (const slot of slots) {
-    uf.union(cellIndex(slot.r1, slot.c1), cellIndex(slot.r2, slot.c2));
-  }
-
-  // Collect all inter-region edges (adjacent cells in different regions)
+  // Collect all adjacent cell edges
   const edges: [number, number][] = [];
   for (let r = 0; r < ROWS; r++) {
     for (let c = 0; c < COLS; c++) {
       const idx = cellIndex(r, c);
-      if (c + 1 < COLS) {
-        const right = cellIndex(r, c + 1);
-        if (uf.find(idx) !== uf.find(right)) {
-          edges.push([idx, right]);
-        }
-      }
-      if (r + 1 < ROWS) {
-        const down = cellIndex(r + 1, c);
-        if (uf.find(idx) !== uf.find(down)) {
-          edges.push([idx, down]);
-        }
-      }
+      if (c + 1 < COLS) edges.push([idx, cellIndex(r, c + 1)]);
+      if (r + 1 < ROWS) edges.push([idx, cellIndex(r + 1, c)]);
     }
   }
 
-  // Shuffle and selectively merge — cap at 4 cells for more moderate regions
-  const MAX_REGION = 4;
+  // Shuffle and selectively merge — cap at 5 cells, allow odd sizes
+  const MAX_REGION = 5;
   for (const [a, b] of shuffle(edges)) {
     const ra = uf.find(a), rb = uf.find(b);
     if (ra === rb) continue;
     const combined = uf.getSize(ra) + uf.getSize(rb);
     if (combined > MAX_REGION) continue;
-    // Always merge isolated domino pairs (size 2) to avoid too many tiny regions
-    if (uf.getSize(ra) <= 2 || uf.getSize(rb) <= 2) {
+    // Always merge single cells to avoid 24 tiny 1-cell regions
+    if (uf.getSize(ra) === 1 || uf.getSize(rb) === 1) {
       uf.union(a, b);
       continue;
     }
-    // Skip ~25% of other merges for variety
-    if (Math.random() < 0.25) continue;
+    // Skip ~30% of other merges for variety
+    if (Math.random() < 0.3) continue;
     uf.union(a, b);
   }
 
@@ -308,13 +294,16 @@ function deriveConstraints(
   dominoes: Domino[],
   cellToRegion: Map<number, number>,
 ): Map<number, Constraint> {
-  // Compute pip values per cell
+  // Compute pip values per cell + track which slot (domino) covers each cell
   const cellPips = new Map<number, number>();
+  const cellDomino = new Map<number, number>(); // cell index → slot index
   for (let i = 0; i < slots.length; i++) {
     const slot = slots[i];
     const domino = dominoes[i];
     cellPips.set(cellIndex(slot.r1, slot.c1), domino.first);
     cellPips.set(cellIndex(slot.r2, slot.c2), domino.second);
+    cellDomino.set(cellIndex(slot.r1, slot.c1), i);
+    cellDomino.set(cellIndex(slot.r2, slot.c2), i);
   }
 
   // Group cells by region
@@ -329,35 +318,123 @@ function deriveConstraints(
 
   for (const [rid, cells] of regionCells) {
     const pipSum = cells.reduce((sum, ci) => sum + (cellPips.get(ci) ?? 0), 0);
-    const avg = pipSum / cells.length;
 
-    // For 2-cell regions, prefer symbol constraints
-    if (cells.length === 2) {
-      const a = cellPips.get(cells[0]) ?? 0;
-      const b = cellPips.get(cells[1]) ?? 0;
-      if (a === b) {
+    // Check if all pip values in the region are the same
+    const allPips = cells.map((ci) => cellPips.get(ci) ?? 0);
+    const allEqual = allPips.every((v) => v === allPips[0]);
+
+    // For equals: require cells from at least 2 different dominoes,
+    // and region must be larger than 2 if a double domino is involved
+    if (allEqual && cells.length >= 2) {
+      const dominoIds = new Set(cells.map((ci) => cellDomino.get(ci)!));
+      const hasDouble = cells.some((ci) => {
+        const si = cellDomino.get(ci)!;
+        return dominoes[si].first === dominoes[si].second;
+      });
+      // Only use equals if cells come from multiple dominoes,
+      // and if a double is involved, region must be > 2 cells
+      if (dominoIds.size >= 2 && (!hasDouble || cells.length > 2)) {
         constraints.set(rid, { type: 'symbol', value: 'equal' });
-        continue;
-      } else {
-        constraints.set(rid, { type: 'symbol', value: 'notEqual' });
         continue;
       }
     }
 
-    // Use exact sum as the primary constraint — most intuitive
-    // For variety, occasionally use a tight inequality on the sum
-    // Pick the tightest true inequality (sum-based, not average-based)
-    const useInequality = Math.random() < 0.3;
-    if (useInequality) {
-      // Try sum-based inequalities with margin of 1-3
-      if (pipSum <= 4) { constraints.set(rid, { type: 'text', value: `<${pipSum + 1}` }); continue; }
-      if (pipSum >= cells.length * 5) { constraints.set(rid, { type: 'text', value: `>${pipSum - 1}` }); continue; }
+    // For 2-cell regions with same pips from one domino (double), use sum instead
+    // No standalone notEqual — just use sum/inequality for all non-equal regions
+
+    // ~15% chance for a sum-based inequality, otherwise exact sum
+    const midpoint = cells.length * 3;
+    if (Math.random() < 0.15) {
+      const margin = 1 + Math.floor(Math.random() * 3);
+      if (pipSum < midpoint) {
+        constraints.set(rid, { type: 'text', value: `<${pipSum + margin}` });
+      } else {
+        constraints.set(rid, { type: 'text', value: `>${pipSum - margin}` });
+      }
+      continue;
     }
 
     constraints.set(rid, { type: 'text', value: String(pipSum) });
   }
 
   return constraints;
+}
+
+// ── Post-processing: nudge regions toward equal pips ─────────────
+
+function nudgeEqualRegions(
+  slots: TilingSlot[],
+  dominoes: Domino[],
+  cellToRegion: Map<number, number>,
+): void {
+  // Map cell index → which slot covers it and which half ('first' or 'second')
+  const cellSlot = new Map<number, { slotIdx: number; half: 'first' | 'second' }>();
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    cellSlot.set(cellIndex(s.r1, s.c1), { slotIdx: i, half: 'first' });
+    cellSlot.set(cellIndex(s.r2, s.c2), { slotIdx: i, half: 'second' });
+  }
+
+  // Group cells by region
+  const regionCells = new Map<number, number[]>();
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const rid = cellToRegion.get(i)!;
+    if (!regionCells.has(rid)) regionCells.set(rid, []);
+    regionCells.get(rid)!.push(i);
+  }
+
+  // Try to make several regions all-equal by flipping domino orientations
+  // Prioritize larger regions first (more impressive equals), then smaller
+  const regions = shuffle([...regionCells.entries()].filter(([, c]) => c.length >= 2 && c.length <= 5))
+    .sort((a, b) => b[1].length - a[1].length);
+  let nudged = 0;
+
+  for (const [, cells] of regions) {
+    if (nudged >= 4) break;
+
+    // For each pip value 0-6 (shuffled), check if we can flip dominoes so every
+    // cell in this region shows that pip value
+    for (const targetPip of shuffle([0, 1, 2, 3, 4, 5, 6])) {
+      let possible = true;
+
+      // Collect which slots need flipping
+      const flips: { slotIdx: number; needSwap: boolean }[] = [];
+      for (const ci of cells) {
+        const info = cellSlot.get(ci);
+        if (!info) { possible = false; break; }
+        const d = dominoes[info.slotIdx];
+        const currentPip = info.half === 'first' ? d.first : d.second;
+        const otherPip = info.half === 'first' ? d.second : d.first;
+
+        if (currentPip === targetPip) {
+          // Already correct
+          flips.push({ slotIdx: info.slotIdx, needSwap: false });
+        } else if (otherPip === targetPip) {
+          // Need to flip this domino
+          flips.push({ slotIdx: info.slotIdx, needSwap: true });
+        } else {
+          // Neither half has the target pip — impossible for this target
+          possible = false;
+          break;
+        }
+      }
+
+      if (!possible) continue;
+
+      // Check that flipping won't break another region's constraint
+      // (we haven't assigned constraints yet, so flipping is safe)
+      // Apply the flips
+      for (const { slotIdx, needSwap } of flips) {
+        if (needSwap) {
+          const d = dominoes[slotIdx];
+          dominoes[slotIdx] = { ...d, first: d.second, second: d.first };
+        }
+      }
+
+      nudged++;
+      break; // Move on to next region
+    }
+  }
 }
 
 // ── Main Generator ───────────────────────────────────────────────
@@ -370,7 +447,11 @@ export function generatePuzzle(): GeneratedPuzzle {
   const dominoes = assignDominoes(slots);
 
   // Stage 3: Region growing
-  const cellToRegion = growRegions(slots);
+  const cellToRegion = growRegions();
+
+  // Post-process: try to create equal-pip regions by flipping domino orientations
+  // For each region, check if flipping some dominoes can make all cell pips equal
+  nudgeEqualRegions(slots, dominoes, cellToRegion);
 
   // Graph color the regions
   const regionColors = colorRegions(cellToRegion);
