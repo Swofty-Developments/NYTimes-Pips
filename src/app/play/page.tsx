@@ -7,12 +7,14 @@ import { DominoDeck } from '@/components/DominoDeck';
 import { DominoPiece } from '@/components/DominoPiece';
 import { TopNav } from '@/components/TopNav';
 import { ShareButton } from '@/components/ShareButton';
+import { CongratsModal } from '@/components/CongratsModal';
 import { BoardState, CellState, Domino, PlacedDomino } from '@/types';
 import { BOARD, generateFullSet, shuffleDominoes } from '@/constants';
 import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 import { encodePuzzle, decodePuzzle } from '@/utils/puzzleEncoding';
 import { generatePuzzle } from '@/utils/puzzleGenerator';
+import { validatePuzzle } from '@/utils/validatePuzzle';
 
 function createInitialDeck(): Domino[] {
   return shuffleDominoes(generateFullSet());
@@ -25,6 +27,8 @@ export default function PlayPage() {
     </Suspense>
   );
 }
+
+type GamePhase = 'prestart' | 'playing' | 'solved' | 'reviewing';
 
 function PlayPageInner() {
   const searchParams = useSearchParams();
@@ -44,8 +48,23 @@ function PlayPageInner() {
 
   const [deckDominoes, setDeckDominoes] = useState<Domino[]>(createInitialDeck);
   const [placedDominoes, setPlacedDominoes] = useState<PlacedDomino[]>([]);
+  const [solutionPlacements, setSolutionPlacements] = useState<PlacedDomino[]>([]);
   const [ready, setReady] = useState(false);
   const deckRef = useRef<HTMLDivElement>(null);
+
+  // Game phase & timer
+  const [gamePhase, setGamePhase] = useState<GamePhase>('prestart');
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+
+  // Tick the timer every second while playing
+  useEffect(() => {
+    if (gamePhase !== 'playing' || !startTime) return;
+    const interval = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [gamePhase, startTime]);
 
   // Load puzzle from URL param or generate
   useEffect(() => {
@@ -53,23 +72,46 @@ function PlayPageInner() {
       try {
         const data = decodePuzzle(puzzleParam);
         setBoard(data.board);
-        setPlacedDominoes(data.placedDominoes);
-        setDeckDominoes(createInitialDeck());
+        const solutionDominoes = data.placedDominoes.map((p) => p.domino);
+        setDeckDominoes(solutionDominoes);
+        setSolutionPlacements(data.placedDominoes);
+        setPlacedDominoes([]);
         setIsUrlPuzzle(true);
       } catch {
         const puzzle = generatePuzzle();
         setBoard(puzzle.board);
         setDeckDominoes(puzzle.solutionDominoes);
+        setSolutionPlacements(puzzle.solutionPlacements);
         setIsUrlPuzzle(false);
       }
     } else {
       const puzzle = generatePuzzle();
       setBoard(puzzle.board);
       setDeckDominoes(puzzle.solutionDominoes);
+      setSolutionPlacements(puzzle.solutionPlacements);
       setIsUrlPuzzle(false);
     }
     setReady(true);
+    setGamePhase('prestart');
+    setStartTime(null);
+    setElapsedSeconds(0);
+    setPlacedDominoes([]);
   }, [puzzleParam]);
+
+  // Check win condition whenever placed dominoes change
+  useEffect(() => {
+    if (gamePhase !== 'playing' || placedDominoes.length === 0) return;
+    if (validatePuzzle(board, placedDominoes)) {
+      setElapsedSeconds(Math.floor((Date.now() - (startTime ?? Date.now())) / 1000));
+      setGamePhase('solved');
+    }
+  }, [placedDominoes, board, gamePhase, startTime]);
+
+  const handleStart = useCallback(() => {
+    setGamePhase('playing');
+    setStartTime(Date.now());
+    setElapsedSeconds(0);
+  }, []);
 
   const placedIds = useMemo(
     () => new Set(placedDominoes.map((p) => p.domino.id)),
@@ -104,10 +146,37 @@ function PlayPageInner() {
     const puzzle = generatePuzzle();
     setBoard(puzzle.board);
     setDeckDominoes(puzzle.solutionDominoes);
+    setSolutionPlacements(puzzle.solutionPlacements);
     setPlacedDominoes([]);
     clearSelection();
     setIsUrlPuzzle(false);
+    setGamePhase('prestart');
+    setStartTime(null);
+    setElapsedSeconds(0);
   }, [clearSelection]);
+
+  const handleCongratsClose = useCallback(() => {
+    setGamePhase('reviewing');
+  }, []);
+
+  const handleNewPuzzle = useCallback(() => {
+    handleRegenerate();
+  }, [handleRegenerate]);
+
+  const handleSolveForMe = useCallback(() => {
+    if (solutionPlacements.length === 0) return;
+    // Start the game if not already playing
+    if (gamePhase === 'prestart') {
+      setGamePhase('playing');
+      setStartTime(Date.now());
+      setElapsedSeconds(0);
+    }
+    clearSelection();
+    // Pick a random domino to leave out
+    const leaveOutIdx = Math.floor(Math.random() * solutionPlacements.length);
+    const allButOne = solutionPlacements.filter((_, i) => i !== leaveOutIdx);
+    setPlacedDominoes(allButOne);
+  }, [solutionPlacements, gamePhase, clearSelection]);
 
   const deckExcludeIds = useMemo(() => {
     const ids = new Set(placedIds);
@@ -145,12 +214,59 @@ function PlayPageInner() {
     <div
       ref={containerRef}
       style={{ display: 'flex', flex: 1, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-      onPointerDown={clearSelection}
+      onPointerDown={gamePhase === 'playing' || gamePhase === 'reviewing' ? clearSelection : undefined}
     >
     <div
       ref={innerRef}
-      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, padding: 32, transformOrigin: 'center center' }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 24,
+        padding: 32,
+        transformOrigin: 'center center',
+        position: 'relative',
+      }}
     >
+
+      {/* Pre-start blur overlay */}
+      {gamePhase === 'prestart' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            background: 'rgba(255, 255, 255, 0.5)',
+            borderRadius: 16,
+          }}
+        >
+          <button
+            onClick={handleStart}
+            style={{
+              padding: '16px 48px',
+              fontSize: 22,
+              fontWeight: 700,
+              fontFamily: "'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif",
+              color: 'white',
+              background: '#6b5147',
+              border: 'none',
+              borderRadius: 28,
+              cursor: 'pointer',
+              boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
+              transition: 'background 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.background = '#5a4339'; }}
+            onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = '#6b5147'; }}
+          >
+            Play
+          </button>
+        </div>
+      )}
 
       <div data-board onPointerDown={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
         <Board
@@ -242,6 +358,43 @@ function PlayPageInner() {
 
     </div>
     </div>
+
+      {/* Solve for me button */}
+      {gamePhase !== 'solved' && gamePhase !== 'reviewing' && (
+        <button
+          onClick={handleSolveForMe}
+          style={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            padding: '10px 20px',
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "'nyt-franklin', var(--font-libre-franklin), 'Libre Franklin', sans-serif",
+            color: '#6b5147',
+            background: 'white',
+            border: '1px solid #6b5147',
+            borderRadius: 20,
+            cursor: 'pointer',
+            zIndex: 60,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.target as HTMLButtonElement).style.background = '#f0e6e0'; }}
+          onMouseLeave={(e) => { (e.target as HTMLButtonElement).style.background = 'white'; }}
+        >
+          Solve for me
+        </button>
+      )}
+
+      {/* Congrats modal */}
+      {gamePhase === 'solved' && (
+        <CongratsModal
+          timeElapsed={elapsedSeconds}
+          onClose={handleCongratsClose}
+          onNewPuzzle={handleNewPuzzle}
+        />
+      )}
 
       {/* Drag ghost */}
       {dragState && dragDomino && (() => {

@@ -17,12 +17,12 @@ export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]
     }
   }
 
-  // Check every active cell (has regionColor) on the board is covered
+  // Check every cell on the board is covered
   const rows = board.length;
   const cols = board[0]?.length ?? 0;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < cols; c++) {
-      if (board[r][c].regionColor && !pipMap.has(`${r}-${c}`)) return false;
+      if (!pipMap.has(`${r}-${c}`)) return false;
     }
   }
 
@@ -54,17 +54,16 @@ export function validatePuzzle(board: BoardState, placedDominoes: PlacedDomino[]
         if (pips.every((v) => v === pips[0])) return false;
       }
     } else {
-      // Text constraint
+      // Text constraint — all comparisons are on the sum of pips
       const text = constraint.value;
       const sum = pips.reduce((a, b) => a + b, 0);
-      const avg = sum / pips.length;
 
       if (text.startsWith('<')) {
         const threshold = parseFloat(text.slice(1));
-        if (!(avg < threshold)) return false;
+        if (!(sum < threshold)) return false;
       } else if (text.startsWith('>')) {
         const threshold = parseFloat(text.slice(1));
-        if (!(avg > threshold)) return false;
+        if (!(sum > threshold)) return false;
       } else {
         // Exact sum
         const target = parseInt(text, 10);

@@ -29,12 +29,7 @@ export default function CongratsModal({ timeElapsed, onClose, onNewPuzzle }: Con
           ✕
         </button>
         <div className={styles.content}>
-          <svg className={styles.star} viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path
-              d="M32 4l7.6 18.6H60l-16.4 12 6.2 19.4L32 42.2 14.2 54l6.2-19.4L4 22.6h20.4L32 4z"
-              fill="currentColor"
-            />
-          </svg>
+          <span className={styles.star} />
           <h1 className={styles.heading}>Congrats!</h1>
           <p className={styles.message}>
             You solved the puzzle in <span className={styles.bold}>{formatTime(timeElapsed)}</span>.

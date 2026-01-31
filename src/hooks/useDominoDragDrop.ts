@@ -338,15 +338,11 @@ export function useDominoDragDrop({
             onRestore(start.dominoId, start.location);
           }
         } else {
-          // Check if dropped over the deck area — return to deck instead of restoring
+          // Check if dropped over or near the deck area — return to deck
           if (start.location.area === 'board' && deckElementRef.current) {
             const deckRect = deckElementRef.current.getBoundingClientRect();
-            if (
-              e.clientX >= deckRect.left &&
-              e.clientX <= deckRect.right &&
-              e.clientY >= deckRect.top &&
-              e.clientY <= deckRect.bottom
-            ) {
+            // Accept drops over the deck or anywhere below its top edge
+            if (e.clientY >= deckRect.top) {
               onReturnToDeck(start.dominoId);
             } else {
               onRestore(start.dominoId, start.location);

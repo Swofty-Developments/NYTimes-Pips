@@ -1,4 +1,4 @@
-import { BoardState, CellState, RegionColor, Constraint, Domino } from '@/types';
+import { BoardState, CellState, RegionColor, Constraint, Domino, PlacedDomino, DominoOrientation } from '@/types';
 import { BOARD } from '@/constants';
 import { findRegions } from '@/utils/regions';
 
@@ -22,6 +22,7 @@ const POSSIBLE_CONSTRAINTS: Constraint[] = [
 export interface GeneratedPuzzle {
   board: BoardState;
   solutionDominoes: Domino[];
+  solutionPlacements: PlacedDomino[];
 }
 
 // ── Utility ──────────────────────────────────────────────────────
@@ -195,15 +196,20 @@ function growRegions(slots: TilingSlot[]): Map<number, number> {
     }
   }
 
-  // Shuffle and selectively merge — cap at 6 cells, skip some merges for variety
-  const MAX_REGION = 6;
+  // Shuffle and selectively merge — cap at 4 cells for more moderate regions
+  const MAX_REGION = 4;
   for (const [a, b] of shuffle(edges)) {
     const ra = uf.find(a), rb = uf.find(b);
     if (ra === rb) continue;
     const combined = uf.getSize(ra) + uf.getSize(rb);
     if (combined > MAX_REGION) continue;
-    // Skip ~40% of merges to keep regions broken up
-    if (Math.random() < 0.4) continue;
+    // Always merge isolated domino pairs (size 2) to avoid too many tiny regions
+    if (uf.getSize(ra) <= 2 || uf.getSize(rb) <= 2) {
+      uf.union(a, b);
+      continue;
+    }
+    // Skip ~25% of other merges for variety
+    if (Math.random() < 0.25) continue;
     uf.union(a, b);
   }
 
@@ -338,33 +344,17 @@ function deriveConstraints(
       }
     }
 
-    // Exact sum constraints — always tightest possible
-    if (pipSum === 7) { constraints.set(rid, { type: 'text', value: '7' }); continue; }
-    if (pipSum === 8) { constraints.set(rid, { type: 'text', value: '8' }); continue; }
-    if (pipSum === 9) { constraints.set(rid, { type: 'text', value: '9' }); continue; }
-    if (pipSum === 10) { constraints.set(rid, { type: 'text', value: '10' }); continue; }
-
-    // Inequality constraints — pick the TIGHTEST true one.
-    // Check stricter thresholds first so we don't settle for a loose one.
-    // <2 (avg<2) is tighter than <3 (avg<3), so check <2 first.
-    // >5 (avg>5) is tighter than >4 (avg>4), so check >5 first.
-    if (avg < 2) { constraints.set(rid, { type: 'text', value: '<2' }); continue; }
-    if (avg > 5) { constraints.set(rid, { type: 'text', value: '>5' }); continue; }
-    if (avg < 3) { constraints.set(rid, { type: 'text', value: '<3' }); continue; }
-    if (avg > 4) { constraints.set(rid, { type: 'text', value: '>4' }); continue; }
-
-    // Middle range (avg 3-4) — no tight inequality available.
-    // Fall back to the exact sum if it happens to be one we support,
-    // otherwise use whichever inequality is actually true.
-    if (avg < 3) {
-      constraints.set(rid, { type: 'text', value: '<3' });
-    } else if (avg > 4) {
-      constraints.set(rid, { type: 'text', value: '>4' });
-    } else {
-      // avg is between 3 and 4 — neither inequality holds.
-      // Use the sum as a text constraint directly (always accurate).
-      constraints.set(rid, { type: 'text', value: String(pipSum) });
+    // Use exact sum as the primary constraint — most intuitive
+    // For variety, occasionally use a tight inequality on the sum
+    // Pick the tightest true inequality (sum-based, not average-based)
+    const useInequality = Math.random() < 0.3;
+    if (useInequality) {
+      // Try sum-based inequalities with margin of 1-3
+      if (pipSum <= 4) { constraints.set(rid, { type: 'text', value: `<${pipSum + 1}` }); continue; }
+      if (pipSum >= cells.length * 5) { constraints.set(rid, { type: 'text', value: `>${pipSum - 1}` }); continue; }
     }
+
+    constraints.set(rid, { type: 'text', value: String(pipSum) });
   }
 
   return constraints;
@@ -420,7 +410,15 @@ export function generatePuzzle(): GeneratedPuzzle {
     }
   }
 
-  return { board, solutionDominoes: dominoes };
+  // Build solution placements from slots + dominoes
+  const solutionPlacements: PlacedDomino[] = slots.map((slot, i) => ({
+    domino: dominoes[i],
+    row: slot.r1,
+    col: slot.c1,
+    orientation: (slot.r1 === slot.r2 ? 'horizontal' : 'vertical') as DominoOrientation,
+  }));
+
+  return { board, solutionDominoes: dominoes, solutionPlacements };
 }
 
 // ── Legacy export for edit page ──────────────────────────────────

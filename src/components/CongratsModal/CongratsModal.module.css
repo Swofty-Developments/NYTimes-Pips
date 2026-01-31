@@ -55,7 +55,7 @@
   width: 64px;
   height: 64px;
   display: block;
-  color: #6b5147;
+  background: url("https://www.nytimes.com/games-assets/v2/assets/pips/shared/icons/star.svg") 50% 50% / 64px 64px no-repeat;
 }
 
 .heading {
