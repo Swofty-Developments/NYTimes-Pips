@@ -97,15 +97,27 @@ function findDisplayCell(cells: [number, number][]): [number, number] {
 export function convertExternalPuzzle(data: ExternalPuzzle, source: string): ConvertedPuzzle {
   const { regions, dominoes, solution } = data;
 
-  // 1. Collect all cell indices and compute bounding box
-  let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+  // 1. Collect ALL foundation cells from solution placements (where dominoes sit)
+  const allCells = new Set<string>();
+  for (const [[r1, c1], [r2, c2]] of solution) {
+    allCells.add(`${r1}-${c1}`);
+    allCells.add(`${r2}-${c2}`);
+  }
+  // Also include region cells (they should overlap, but just in case)
   for (const region of regions) {
     for (const [r, c] of region.indices) {
-      if (r < minR) minR = r;
-      if (r > maxR) maxR = r;
-      if (c < minC) minC = c;
-      if (c > maxC) maxC = c;
+      allCells.add(`${r}-${c}`);
     }
+  }
+
+  // Compute bounding box from all foundation cells
+  let minR = Infinity, maxR = -Infinity, minC = Infinity, maxC = -Infinity;
+  for (const key of allCells) {
+    const [r, c] = key.split('-').map(Number);
+    if (r < minR) minR = r;
+    if (r > maxR) maxR = r;
+    if (c < minC) minC = c;
+    if (c > maxC) maxC = c;
   }
 
   const shapeH = maxR - minR + 1;
@@ -136,7 +148,7 @@ export function convertExternalPuzzle(data: ExternalPuzzle, source: string): Con
   }));
   const regionColors = graphColorRegions(offsetRegions, cellToRegion);
 
-  // 5. Build board
+  // 5. Build board — first mark ALL foundation cells (colorless), then overlay regions
   const board: BoardState = Array.from({ length: WORK_GRID.rows }, () =>
     Array.from({ length: WORK_GRID.cols }, (): CellState => ({
       regionColor: null,
@@ -145,17 +157,25 @@ export function convertExternalPuzzle(data: ExternalPuzzle, source: string): Con
     }))
   );
 
+  // Mark all cells from solution as foundation (no color)
+  for (const key of allCells) {
+    const [r, c] = key.split('-').map(Number);
+    board[r + offsetR][c + offsetC].isFoundation = true;
+  }
+
+  // Overlay colored regions onto foundation (skip "empty" — those are unconstrained foundation)
   for (let i = 0; i < regions.length; i++) {
+    if (regions[i].type === 'empty') continue;
+
     const constraint = mapConstraint(regions[i]);
     const offsetCells = offsetRegions[i].indices;
     const displayCell = findDisplayCell(offsetCells);
 
     for (const [r, c] of offsetCells) {
-      board[r][c] = {
-        regionColor: regionColors[i],
-        constraint: (r === displayCell[0] && c === displayCell[1]) ? constraint : null,
-        isFoundation: true,
-      };
+      board[r][c].regionColor = regionColors[i];
+      if (r === displayCell[0] && c === displayCell[1]) {
+        board[r][c].constraint = constraint;
+      }
     }
   }
 
