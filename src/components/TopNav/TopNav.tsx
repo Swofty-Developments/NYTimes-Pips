@@ -9,9 +9,10 @@ interface TopNavProps {
   shareButton?: React.ReactNode;
   onRegenerate?: () => void;
   onClearBoard?: () => void;
+  centerLabel?: string;
 }
 
-export default function TopNav({ activeTab, shareButton, onRegenerate, onClearBoard }: TopNavProps) {
+export default function TopNav({ activeTab, shareButton, onRegenerate, onClearBoard, centerLabel }: TopNavProps) {
   return (
     <nav className={styles.nav}>
       <div className={styles.tabs}>
@@ -57,6 +58,9 @@ export default function TopNav({ activeTab, shareButton, onRegenerate, onClearBo
           </button>
         )}
       </div>
+      {centerLabel && (
+        <div className={styles.centerLabel}>{centerLabel}</div>
+      )}
       <div className={styles.spacer} />
       <a
         href="https://github.com/Swofty-Developments/nytimes-pips"

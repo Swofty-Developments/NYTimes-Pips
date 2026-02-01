@@ -15,6 +15,7 @@ import { useDominoInteraction } from '@/hooks/useDominoInteraction';
 import { useContentScale } from '@/hooks/useContentScale';
 
 import { generatePuzzle } from '@/utils/puzzleGenerator';
+import { fetchOfficialPuzzle } from '@/utils/fetchOfficialPuzzle';
 import { validatePuzzle, isBoardFull, getViolatedRegions } from '@/utils/validatePuzzle';
 
 function createInitialDeck(): Domino[] {
@@ -49,6 +50,7 @@ function PlayPageInner() {
   const [deckDominoes, setDeckDominoes] = useState<Domino[]>(createInitialDeck);
   const [placedDominoes, setPlacedDominoes] = useState<PlacedDomino[]>([]);
   const [solutionPlacements, setSolutionPlacements] = useState<PlacedDomino[]>([]);
+  const [puzzleSource, setPuzzleSource] = useState<string>('');
   const [ready, setReady] = useState(false);
   const deckRef = useRef<HTMLDivElement>(null);
 
@@ -82,18 +84,27 @@ function PlayPageInner() {
           setDeckDominoes(solutionDominoes);
           setSolutionPlacements(data.placedDominoes);
           setPlacedDominoes([]);
+          setPuzzleSource('SHARED PUZZLE');
         } catch {
           if (cancelled) return;
           const puzzle = generatePuzzle();
           setBoard(puzzle.board);
           setDeckDominoes(puzzle.solutionDominoes);
           setSolutionPlacements(puzzle.solutionPlacements);
+          setPuzzleSource(puzzle.source);
         }
       } else {
-        const puzzle = generatePuzzle();
+        let puzzle = null;
+        if (Math.random() < 0.4) {
+          puzzle = await fetchOfficialPuzzle();
+        }
+        if (!puzzle) {
+          puzzle = generatePuzzle();
+        }
         setBoard(puzzle.board);
         setDeckDominoes(puzzle.solutionDominoes);
         setSolutionPlacements(puzzle.solutionPlacements);
+        setPuzzleSource(puzzle.source);
       }
       if (cancelled) return;
       setReady(true);
@@ -166,11 +177,18 @@ function PlayPageInner() {
   });
 
 
-  const handleRegenerate = useCallback(() => {
-    const puzzle = generatePuzzle();
+  const handleRegenerate = useCallback(async () => {
+    let puzzle = null;
+    if (Math.random() < 0.4) {
+      puzzle = await fetchOfficialPuzzle();
+    }
+    if (!puzzle) {
+      puzzle = generatePuzzle();
+    }
     setBoard(puzzle.board);
     setDeckDominoes(puzzle.solutionDominoes);
     setSolutionPlacements(puzzle.solutionPlacements);
+    setPuzzleSource(puzzle.source);
     setPlacedDominoes([]);
     clearSelection();
     setGamePhase('prestart');
@@ -249,6 +267,7 @@ function PlayPageInner() {
       shareButton={<ShareButton getShareUrl={getShareUrl} />}
       onRegenerate={handleRegenerate}
       onClearBoard={handleClearBoard}
+      centerLabel={puzzleSource}
     />
     <div
       ref={containerRef}

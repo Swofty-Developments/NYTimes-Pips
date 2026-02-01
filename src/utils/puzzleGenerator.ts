@@ -8,6 +8,7 @@ export interface GeneratedPuzzle {
   board: BoardState;
   solutionDominoes: Domino[];
   solutionPlacements: PlacedDomino[];
+  source: string;
 }
 
 // ── Utility ──────────────────────────────────────────────────────
@@ -1084,11 +1085,13 @@ function placeTemplate(tmpl: ShapeTemplate): { cells: Set<string>; startR: numbe
 /** Track which template was used for hint application */
 let lastUsedTemplate: ShapeTemplate | null = null;
 let lastTemplateOrigin: { startR: number; startC: number } | null = null;
+let lastFoundationStrategy: string = 'TEMPLATE';
 
 /** Top-level: pick a random foundation strategy */
 function generateFoundation(): Set<string> {
   lastUsedTemplate = null;
   lastTemplateOrigin = null;
+  lastFoundationStrategy = 'TEMPLATE';
   const strategy = Math.random();
 
   if (strategy < 0.50) {
@@ -1105,9 +1108,10 @@ function generateFoundation(): Set<string> {
     const target = 16 + Math.floor(Math.random() * 20); // 16–36
     const cells = generateSymmetric(target, GRID_ROWS, GRID_COLS);
     ensureEven(cells, GRID_ROWS, GRID_COLS);
-    if (cells.size >= 6 && isConnected(cells)) return cells;
+    if (cells.size >= 6 && isConnected(cells)) { lastFoundationStrategy = 'SYMMETRIC'; return cells; }
   } else {
     // Random blob (25%)
+    lastFoundationStrategy = 'BLOB';
     const target = 14 + Math.floor(Math.random() * 24); // 14–38
     const startR = 1 + Math.floor(Math.random() * (GRID_ROWS - 2));
     const startC = 1 + Math.floor(Math.random() * (GRID_COLS - 2));
@@ -1821,7 +1825,7 @@ export function generatePuzzle(): GeneratedPuzzle {
       orientation: (slot.r1 === slot.r2 ? 'horizontal' : 'vertical') as DominoOrientation,
     }));
 
-    return { board, solutionDominoes: dominoes, solutionPlacements };
+    return { board, solutionDominoes: dominoes, solutionPlacements, source: `RANDOM GENERATION (${lastFoundationStrategy})` };
   }
 
   // Ultimate fallback: classic 4×6 rectangle
@@ -1877,7 +1881,7 @@ function generatePuzzleFallback(): GeneratedPuzzle {
     orientation: (slot.r1 === slot.r2 ? 'horizontal' : 'vertical') as DominoOrientation,
   }));
 
-  return { board, solutionDominoes: dominoes, solutionPlacements };
+  return { board, solutionDominoes: dominoes, solutionPlacements, source: 'RANDOM GENERATION (TEMPLATE)' };
 }
 
 // ── Legacy export for edit page ──────────────────────────────────
